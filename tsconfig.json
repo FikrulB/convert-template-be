@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    /* === Output === */
+    "outDir": "./dist",
+    "declaration": true,
+    "removeComments": true,
+    "sourceMap": true,
+    "incremental": true,
+
+    /* === Module system === */
+    "module": "commonjs",
+    // "module": "nodenext",
+    // "moduleResolution": "nodenext",
+    "target": "ES2021",
+    "resolvePackageJsonExports": true,
+    "resolvePackageJsonImports": true,
+    "allowImportingTsExtensions": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* === Decorators (untuk NestJS) === */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* === Strictness & safety === */
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictBindCallApply": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* === Paths / Alias === */
+    "baseUrl": "./",
+    "paths": {
+      "#/*": ["src/*"]
+    },
+    "ignoreDeprecations": "6.0"
+  },
+
+  /* === Include project files === */
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".eslintrc.js"]
+}
