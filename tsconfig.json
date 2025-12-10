@@ -39,6 +39,12 @@
   },
 
   /* === Include project files === */
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "prisma.config.ts",
+    "scripts/**/*.ts",
+    "prisma/**/*.ts"
+  ],
   "exclude": ["node_modules", "dist", ".eslintrc.js"]
 }
