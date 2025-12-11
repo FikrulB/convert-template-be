@@ -25,7 +25,7 @@ export class RegisterDTO {
   @Match('password', {
     message: 'Konfirmasi password tidak sama dengan password',
   })
-  confirm_password: string;
+  confirmPassword: string;
 
   @IsNotEmpty({ message: 'Nama Lengkap tidak boleh kosong' })
   @IsString({ message: 'Nama Lengkap wajib berupa text' })

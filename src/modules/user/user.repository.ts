@@ -12,6 +12,13 @@ export class UserRepository {
         unique_code: true,
         email: true,
         created_at: true,
+        user_password_user_password_user_idTouser: {
+          where: { deleted_at: null },
+          select: {
+            password: true,
+          },
+          take: 1,
+        },
         user_role: {
           where: { role: { deleted_at: null } },
           select: {
@@ -21,6 +28,17 @@ export class UserRepository {
                 name: true,
               },
             },
+          },
+        },
+        user_detail_user_detail_user_idTouser: {
+          where: { deleted_at: null },
+          select: {
+            avatar: true,
+            fullname: true,
+            address: true,
+            start_at: true,
+            end_at: true,
+            is_active: true,
           },
         },
       },

@@ -1,3 +1,4 @@
+import dayJs from '#/common/utils/dayjs.util';
 import {
   CallHandler,
   ExecutionContext,
@@ -13,8 +14,8 @@ export class ResponseInterceptor implements NestInterceptor {
       map((data) => ({
         code: context.switchToHttp().getResponse().statusCode,
         message: 'Sukses',
+        timestamp: dayJs().utc(),
         data,
-        timestamp: new Date().toISOString(),
       })),
     );
   }
