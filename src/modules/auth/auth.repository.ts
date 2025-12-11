@@ -1,4 +1,3 @@
-import { hash } from '#/common/utils/encrypt.util';
 import { PrismaService } from '#/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
@@ -6,19 +5,22 @@ import { Injectable } from '@nestjs/common';
 export class AuthRepository {
   constructor(private prisma: PrismaService) {}
 
-  async saveRefreshToken(
+  async saveTokens(
     userId: number | bigint,
     accessToken: string,
     refreshToken?: string,
   ) {
-    const [atHashed, rtHashed] = await Promise.all([
-      hash(accessToken),
-      hash(refreshToken),
-    ]);
-
-    await this.prisma.user_authentication.update({
+    await this.prisma.user_authentication.upsert({
       where: { user_id: userId },
-      data: { access_token: atHashed, refreshToken: rtHashed },
+      update: {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      },
+      create: {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        user_id: userId,
+      },
     });
   }
 }

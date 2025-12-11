@@ -1,7 +1,7 @@
 import { makeRandomString } from '#/common/utils/common.util';
 import dayJs from '#/common/utils/dayjs.util';
-import { hash } from '#/common/utils/encrypt.util';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '../generated/prisma/client';
 
 const prisma = new PrismaClient({
@@ -34,7 +34,10 @@ async function main() {
       isSpecialChar: false,
     });
 
-    const password = await hash(process.env.SEED_USER_PASSWORD);
+    const password = await bcrypt.hash(
+      process.env.SEED_USER_PASSWORD,
+      process.env.SALT_ROUND,
+    );
 
     const adminRole = await prisma.role.findFirst({
       where: { code: 'ADM' },

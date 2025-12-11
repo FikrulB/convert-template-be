@@ -1,3 +1,4 @@
+import { HashService } from '#/common/utils/encrypt.util';
 import { AuthModule } from '#/modules/auth/auth.module';
 import { ExcelModule } from '#/modules/excel/excel.module';
 import { TemplatesModule } from '#/modules/template/template.module';
@@ -15,6 +16,7 @@ import { UserModule } from './modules/user/user.module';
     UserModule,
     AuthModule,
   ],
-  providers: [],
+  providers: [HashService],
+  exports: [HashService],
 })
 export class AppModule {}

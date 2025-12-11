@@ -1,34 +1,45 @@
 model user {
-  id                                           BigInt          @id @default(autoincrement())
-  unique_code                                  String          @unique @db.Char(30)
-  email                                        String          @unique @db.VarChar(50)
-  created_at                                   DateTime        @default(now()) @db.Timestamp(6)
+  id                                           BigInt               @id @default(autoincrement())
+  unique_code                                  String               @unique @db.Char(30)
+  email                                        String               @unique @db.VarChar(50)
+  created_at                                   DateTime             @default(now()) @db.Timestamp(6)
   created_by                                   BigInt?
-  updated_at                                   DateTime?       @db.Timestamp(6)
+  updated_at                                   DateTime?            @db.Timestamp(6)
   updated_by                                   BigInt?
-  deleted_at                                   DateTime?       @db.Timestamp(6)
+  deleted_at                                   DateTime?            @db.Timestamp(6)
   deleted_by                                   BigInt?
-  role_role_created_byTouser                   role[]          @relation("role_created_byTouser")
-  role_role_deleted_byTouser                   role[]          @relation("role_deleted_byTouser")
-  role_role_updated_byTouser                   role[]          @relation("role_updated_byTouser")
-  user_user_created_byTouser                   user?           @relation("user_created_byTouser", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_user_created_by")
-  other_user_user_created_byTouser             user[]          @relation("user_created_byTouser")
-  user_user_deleted_byTouser                   user?           @relation("user_deleted_byTouser", fields: [deleted_by], references: [id], onUpdate: NoAction, map: "fk_user_deleted_by")
-  other_user_user_deleted_byTouser             user[]          @relation("user_deleted_byTouser")
-  user_user_updated_byTouser                   user?           @relation("user_updated_byTouser", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_user_updated_by")
-  other_user_user_updated_byTouser             user[]          @relation("user_updated_byTouser")
-  user_detail_user_detail_created_byTouser     user_detail[]   @relation("user_detail_created_byTouser")
-  user_detail_user_detail_deleted_byTouser     user_detail[]   @relation("user_detail_deleted_byTouser")
-  user_detail_user_detail_updated_byTouser     user_detail[]   @relation("user_detail_updated_byTouser")
-  user_detail_user_detail_user_idTouser        user_detail?    @relation("user_detail_user_idTouser")
-  user_password_user_password_created_byTouser user_password[] @relation("user_password_created_byTouser")
-  user_password_user_password_deleted_byTouser user_password[] @relation("user_password_deleted_byTouser")
-  user_password_user_password_updated_byTouser user_password[] @relation("user_password_updated_byTouser")
-  user_password_user_password_user_idTouser    user_password[] @relation("user_password_user_idTouser")
+  role_role_created_byTouser                   role[]               @relation("role_created_byTouser")
+  role_role_deleted_byTouser                   role[]               @relation("role_deleted_byTouser")
+  role_role_updated_byTouser                   role[]               @relation("role_updated_byTouser")
+  user_user_created_byTouser                   user?                @relation("user_created_byTouser", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_user_created_by")
+  other_user_user_created_byTouser             user[]               @relation("user_created_byTouser")
+  user_user_deleted_byTouser                   user?                @relation("user_deleted_byTouser", fields: [deleted_by], references: [id], onUpdate: NoAction, map: "fk_user_deleted_by")
+  other_user_user_deleted_byTouser             user[]               @relation("user_deleted_byTouser")
+  user_user_updated_byTouser                   user?                @relation("user_updated_byTouser", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_user_updated_by")
+  other_user_user_updated_byTouser             user[]               @relation("user_updated_byTouser")
+  user_authentication                          user_authentication?
+  user_detail_user_detail_created_byTouser     user_detail[]        @relation("user_detail_created_byTouser")
+  user_detail_user_detail_deleted_byTouser     user_detail[]        @relation("user_detail_deleted_byTouser")
+  user_detail_user_detail_updated_byTouser     user_detail[]        @relation("user_detail_updated_byTouser")
+  user_detail_user_detail_user_idTouser        user_detail?         @relation("user_detail_user_idTouser")
+  user_password_user_password_created_byTouser user_password[]      @relation("user_password_created_byTouser")
+  user_password_user_password_deleted_byTouser user_password[]      @relation("user_password_deleted_byTouser")
+  user_password_user_password_updated_byTouser user_password[]      @relation("user_password_updated_byTouser")
+  user_password_user_password_user_idTouser    user_password[]      @relation("user_password_user_idTouser")
   user_role                                    user_role?
 
   @@index([deleted_at], map: "idx_user_deleted_at")
   @@index([email], map: "idx_user_email")
+  @@schema("usr")
+}
+
+model user_authentication {
+  id            BigInt  @id(map: "user_authentication_pk") @default(autoincrement())
+  user_id       BigInt  @unique(map: "user_authentication_unique")
+  access_token  String  @unique(map: "user_authentication_unique_1") @db.VarChar
+  refresh_token String? @db.VarChar
+  user          user    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_authentication_user_fk")
+
   @@schema("usr")
 }
 
