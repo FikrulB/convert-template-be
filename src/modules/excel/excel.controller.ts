@@ -12,8 +12,6 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
@@ -23,7 +21,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Controller('excel')
 @UseGuards(JwtAuthGuard)
-@UsePipes(new ValidationPipe({ transform: true }))
 export class ExcelController {
   constructor(private readonly excelService: ExcelService) {}
 

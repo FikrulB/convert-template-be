@@ -6,15 +6,26 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
+import { Response } from 'express';
+import { IResponse } from '#/common/interfaces/response.interface';
 
 @Injectable()
-export class ResponseInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  IResponse<T>
+> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler<T>,
+  ): Observable<IResponse<T>> {
+    const httpContext = context.switchToHttp();
+    const response = httpContext.getResponse<Response>();
+
     return next.handle().pipe(
-      map((data) => ({
-        code: context.switchToHttp().getResponse().statusCode,
+      map((data: T) => ({
+        code: response.statusCode,
         message: 'Sukses',
-        timestamp: dayJs().utc(),
+        timestamp: dayJs().utc().toISOString(),
         data,
       })),
     );

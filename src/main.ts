@@ -1,11 +1,7 @@
 import { AppModule } from '#/app.module';
 import { GlobalExceptionFilter } from '#/common/filters/exception.filter';
 import { ResponseInterceptor } from '#/common/interceptors/response.interceptor';
-import {
-  BadRequestException,
-  HttpStatus,
-  ValidationPipe,
-} from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 
@@ -23,21 +19,6 @@ async function bootstrap() {
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
-      exceptionFactory: (errors) => {
-        const formattedErrors = errors.flatMap((error) => {
-          return Object.values(error.constraints).map((message) => ({
-            field: error.property,
-            message,
-          }));
-        });
-
-        return new BadRequestException({
-          code: HttpStatus.BAD_REQUEST,
-          message: 'Permintaan tidak valid. Silakan periksa dan coba lagi.',
-          data: null,
-          error: formattedErrors,
-        });
-      },
     }),
   );
 
@@ -47,4 +28,8 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3004);
   console.log(`✅ Application running on port ${process.env.PORT ?? 3004}`);
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  console.error('❌ Failed to bootstrap application', err);
+  process.exit(1);
+});

@@ -5,20 +5,49 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { Response } from 'express';
+
+interface ValidationErrorItem {
+  property: string;
+  constraints: Record<string, string>;
+}
+
+interface BadRequestExceptionResponse {
+  statusCode: number;
+  message: ValidationErrorItem[] | string;
+  error: string;
+}
+
+interface GenericHttpExceptionResponse {
+  statusCode?: number;
+  message?: string;
+  error?: string;
+}
+
+function isValidationErrorResponse(
+  response: unknown,
+): response is BadRequestExceptionResponse & {
+  message: ValidationErrorItem[];
+} {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'message' in response &&
+    Array.isArray((response as { message: unknown }).message)
+  );
+}
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse();
-    const request: Request = ctx.getRequest();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
     const { code, message, data, error } = this.extractErrorDetails(exception);
 
-    // Log error details
     this.logError(exception, request.url);
 
-    // Send error response
     response.status(code).json({
       code,
       message,
@@ -27,84 +56,94 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     });
   }
 
-  /**
-   * Extracts error details based on the type of exception.
-   * @param exception The exception to process.
-   */
+  private stringifyException(exception: unknown): string {
+    if (exception instanceof Error) return exception.message;
+
+    if (typeof exception === 'string') return exception;
+
+    if (
+      typeof exception === 'number' ||
+      typeof exception === 'boolean' ||
+      exception === null ||
+      exception === undefined
+    )
+      return exception as string;
+
+    if (typeof exception === 'object' && exception !== null) {
+      try {
+        return JSON.stringify(exception);
+      } catch {
+        return '[Unserializable object]';
+      }
+    }
+
+    return '[Unknown exception type]';
+  }
+
   private extractErrorDetails(exception: unknown): {
     code: number;
     message: string;
-    data: any;
-    error: string | null;
+    data: null;
+    error: unknown;
   } {
     if (exception instanceof HttpException) {
       const code = exception.getStatus();
-      const response = exception.getResponse();
+      const exceptionResponse = exception.getResponse();
 
-      const errorWhitelistStatus = [
-        Number(HttpStatus.INTERNAL_SERVER_ERROR),
-        Number(HttpStatus.BAD_REQUEST),
-      ];
+      if (
+        code === Number(HttpStatus.BAD_REQUEST) &&
+        isValidationErrorResponse(exceptionResponse)
+      ) {
+        return {
+          code,
+          message: 'Permintaan tidak valid. Silakan periksa dan coba lagi.',
+          data: null,
+          error: exceptionResponse.message.map((err) => ({
+            field: err.property,
+            message: Object.values(err.constraints),
+          })),
+        };
+      }
 
-      const isError = errorWhitelistStatus.includes(code);
+      if (typeof exceptionResponse === 'string') {
+        return {
+          code,
+          message: exceptionResponse,
+          data: null,
+          error: null,
+        };
+      }
 
-      return {
-        code,
-        message: this.getMessageFromResponse(response, isError, code),
-        data: null,
-        error: isError ? this.getErrorFromResponse(response, code) : null,
-      };
+      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+        const res = exceptionResponse as GenericHttpExceptionResponse;
+        return {
+          code,
+          message:
+            code === Number(HttpStatus.INTERNAL_SERVER_ERROR)
+              ? 'Mohon maaf, terjadi kesalahan tidak terduga.'
+              : (res.message ?? 'Terjadi kesalahan'),
+          data: null,
+          error:
+            code === Number(HttpStatus.INTERNAL_SERVER_ERROR)
+              ? null
+              : (res.error ?? null),
+        };
+      }
     }
 
     return {
       code: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Mohon maaf, terjadi kesalahan tidak terduga.',
       data: null,
-      error:
-        (exception as any)?.message ||
-        (typeof exception === 'object'
-          ? JSON.stringify(exception)
-          : (exception as any).toString()),
+      error: this.stringifyException(exception),
     };
   }
 
-  /**
-   * Extracts the error message from an HttpException response.
-   * @param response The exception response.
-   * @param isInternalError Flag to determine if it is an internal server error.
-   */
-  private getMessageFromResponse(
-    response: any,
-    isInternalError: boolean,
-    code: number,
-  ): string {
-    if (isInternalError && code === Number(HttpStatus.INTERNAL_SERVER_ERROR))
-      return 'Mohon maaf, terjadi kesalahan tidak terduga.';
-    return response?.message || 'Mohon maaf, terjadi kesalahan tidak terduga.';
-  }
-
-  /**
-   * Extracts the error details from an HttpException response.
-   * @param response The exception response.
-   */
-  private getErrorFromResponse(response: any, code: number): string | null {
-    return (
-      (code === Number(HttpStatus.INTERNAL_SERVER_ERROR)
-        ? response?.message
-        : response?.error) ?? null
-    );
-  }
-
-  /**
-   * Logs the error details for debugging purposes.
-   * @param exception The exception to log.
-   * @param url The URL where the error occurred.
-   */
   private logError(exception: unknown, url: string): void {
     const errorDetails =
       exception instanceof Error
         ? exception.stack
-        : (exception as any)?.toString();
+        : this.stringifyException(exception);
     console.error(`Error occurred at ${url}: ${errorDetails}`);
   }
 }

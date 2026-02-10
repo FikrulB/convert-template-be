@@ -17,14 +17,15 @@ export class RefreshJwtStrategy extends PassportStrategy(
     private readonly configService: ConfigService,
   ) {
     super({
-      jwtFromRequest: (req: Request) => req?.cookies?.refresh_token ?? null,
-      secretOrKey: configService.get('JWT_REFRESH_SECRET'),
+      jwtFromRequest: (req: Request) =>
+        (req?.cookies as Record<string, string>)?.refresh_token ?? null,
+      secretOrKey: configService.get<string>('JWT_REFRESH_SECRET'),
       passReqToCallback: true,
     });
   }
 
-  async validate(req: Request, payload: TUserPayload) {
-    const refreshToken = req?.cookies?.refresh_token;
+  async validate(req: Request, payload: TUserPayload): Promise<TUserPayload> {
+    const refreshToken = (req.cookies as Record<string, string>)?.refresh_token;
     if (!refreshToken) throw new UnauthorizedException('Refresh token hilang');
 
     const user = await this.prisma.users.findUnique({
@@ -36,14 +37,11 @@ export class RefreshJwtStrategy extends PassportStrategy(
       },
     });
 
-    if (!user?.user_authentication?.refresh_token)
+    const storedToken = user?.user_authentication?.refresh_token;
+    if (!storedToken)
       throw new UnauthorizedException('User tidak punya refresh token');
 
-    const valid = await bcrypt.compare(
-      refreshToken,
-      user.user_authentication.refresh_token,
-    );
-
+    const valid = await bcrypt.compare(refreshToken, storedToken);
     if (!valid) throw new UnauthorizedException('Refresh token tidak valid');
 
     req.auth = payload;

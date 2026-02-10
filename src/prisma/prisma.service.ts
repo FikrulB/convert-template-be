@@ -14,7 +14,7 @@ export class PrismaService
 
     super({ adapter, log: ['warn', 'error'], errorFormat: 'pretty' });
 
-    this.$on('query' as any, (e: Prisma.QueryEvent) => {
+    this.$on('query', (e: Prisma.QueryEvent) => {
       console.info(`Duration: ${e.duration} ms`);
     });
   }

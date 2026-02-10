@@ -10,8 +10,6 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { Request } from 'express';
@@ -21,7 +19,6 @@ import path from 'path';
 
 @Controller('profile')
 @UseGuards(JwtAuthGuard)
-@UsePipes(new ValidationPipe({ transform: true }))
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 

@@ -13,14 +13,16 @@ export function Match(property: string, validationOptions?: ValidationOptions) {
       options: validationOptions,
       constraints: [property],
       validator: {
-        validate(value: any, args: ValidationArguments) {
-          const [relatedPropertyName] = args.constraints;
-          const relatedValue = (args.object as any)[relatedPropertyName];
+        validate(value: unknown, args: ValidationArguments) {
+          const [relatedPropertyName] = args.constraints as [string];
+          const obj = args.object as Record<string, unknown>;
+          const relatedValue = obj[relatedPropertyName];
+
           return value === relatedValue;
         },
         defaultMessage(args: ValidationArguments) {
-          const [relatedPropertyName] = args.constraints;
-          return `${propertyName} harus sama dengan ${relatedPropertyName}`;
+          const [relatedPropertyName] = args.constraints as [string];
+          return `${args.property} harus sama dengan ${relatedPropertyName}`;
         },
       },
     });

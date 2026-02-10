@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  p Hai #{name}, 👋
+  p
+    | Selamat datang di&nbsp;
+    strong #{appName}
+    | ! Akun kamu berhasil dibuat.
+
+  p
+    | Kamu sekarang bisa mulai menggunakan semua fitur yang tersedia.
+
+  a.btn(href=loginUrl target="_blank") Masuk ke aplikasi
+
+  p(style="margin-top:24px")
+    | Kalau kamu merasa tidak pernah mendaftar, abaikan email ini.

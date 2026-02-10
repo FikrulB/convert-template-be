@@ -1,3 +1,5 @@
+import { TUserPayload } from '#/common/types/user-payload.type';
+import { firstValueFrom, Observable } from 'rxjs';
 import {
   ExecutionContext,
   Injectable,
@@ -7,12 +9,20 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class JwtRefreshAuthGuard extends AuthGuard('refresh-jwt') {
-  canActivate(context: ExecutionContext) {
-    return super.canActivate(context);
+  canActivate(context: ExecutionContext): boolean | Promise<boolean> {
+    const result = super.canActivate(context);
+    if (result instanceof Observable) return firstValueFrom(result);
+    return result;
   }
 
-  handleRequest(err, user, info) {
-    if (err || !user) throw err || new UnauthorizedException();
+  handleRequest<TUser = TUserPayload>(
+    err: unknown,
+    user: TUser | false | null,
+  ): TUser {
+    if (err || !user) {
+      if (err instanceof Error) throw err;
+      throw new UnauthorizedException();
+    }
     return user;
   }
 }

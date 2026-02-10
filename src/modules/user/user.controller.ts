@@ -1,14 +1,5 @@
 import { JwtAuthGuard } from '#/common/guards/jwt.guard';
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 
 @Controller('user')
@@ -18,13 +9,13 @@ export class UserController {
 
   @Get('/')
   @HttpCode(200)
-  getUser(@Req() req: Request) {
+  getUser() {
     return 'test';
   }
 
   @Post('/')
   @HttpCode(200)
-  createUser(@Req() req: Request, @Body() body: any) {
+  createUser() {
     return 'test';
   }
 }
