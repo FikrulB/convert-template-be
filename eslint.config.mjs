@@ -6,37 +6,69 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['eslint.config.mjs', 'dist/**', 'node_modules/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   eslintPluginPrettierRecommended,
   {
+    files: ['**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.node,
         ...globals.jest,
       },
-      sourceType: 'commonjs',
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
   },
+
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/no-floating-promises': 'warn',
+      // ========================
+      // TYPE SAFETY (INTI)
+      // ========================
+      '@typescript-eslint/no-explicit-any': 'warn',
+
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'off',
+
+      // ========================
+      // ERROR HANDLING
+      // ========================
       '@typescript-eslint/only-throw-error': 'off',
+
+      // ========================
+      // PROMISE & ASYNC
+      // ========================
+      '@typescript-eslint/no-floating-promises': 'error',
+
+      // ========================
+      // NULL / UNDEFINED
+      // ========================
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+
+      // ========================
+      // CLEAN CODE
+      // ========================
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+
+      '@typescript-eslint/explicit-function-return-type': 'off',
+
+      // ========================
+      // FORMAT
+      // ========================
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
