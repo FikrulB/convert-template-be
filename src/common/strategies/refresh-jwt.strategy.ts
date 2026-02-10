@@ -1,4 +1,4 @@
-import { UserPayload } from '#/common/types/user-payload.type';
+import { TUserPayload } from '#/common/types/user-payload.type';
 import { PrismaService } from '#/prisma/prisma.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -23,11 +23,11 @@ export class RefreshJwtStrategy extends PassportStrategy(
     });
   }
 
-  async validate(req: Request, payload: UserPayload) {
+  async validate(req: Request, payload: TUserPayload) {
     const refreshToken = req?.cookies?.refresh_token;
     if (!refreshToken) throw new UnauthorizedException('Refresh token hilang');
 
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.users.findUnique({
       where: { unique_code: payload.sub, deleted_at: null },
       select: {
         user_authentication: {

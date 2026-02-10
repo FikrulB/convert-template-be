@@ -1,9 +1,9 @@
-import { UserPayload } from '#/common/types/user-payload.type';
+import { TUserPayload } from '#/common/types/user-payload.type';
 
 declare global {
   namespace Express {
     interface Request {
-      auth?: UserPayload;
+      auth?: TUserPayload;
     }
   }
 }

@@ -1,69 +1,96 @@
-import { IExcelJSON } from '#/common/interfaces/excel.interface';
+import { IItemExcel } from '#/modules/excel/excel.interface';
+import { TUserPayload } from '#/common/types/user-payload.type';
 import { DConvertToJSON } from '#/modules/excel/dto/excel.dto';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
+import path from 'path';
 
 @Injectable()
 export class ExcelService {
-  async convertToJson(
-    req: Request,
-    file: Express.Multer.File,
-    body: DConvertToJSON,
-  ) {
-    const { headerRow } = body;
+  private basePath = path.resolve('./tmp/excel-import');
+
+  async getWorksheetInfo(user: TUserPayload, filePath: string, fileID: string) {
     const workbook = new ExcelJS.Workbook();
-    const nameFile = file.originalname;
-
-    const results: IExcelJSON = { headers: [], items: [] };
-
-    try {
-      fs.writeFileSync(nameFile, file.buffer);
-      await workbook.xlsx.readFile(nameFile);
-
-      const worksheet = workbook.getWorksheet(1);
-      const rowCount = worksheet?.actualRowCount;
-
-      for (let i = 1; i <= rowCount; i++) {
-        const row = worksheet.getRow(i);
-
-        row.eachCell((cell, colNumber) => {
-          const colLetter = cell.address.replace(/[0-9]/g, '');
-          const address = cell.address;
-
-          const value: string =
-            typeof cell.value === 'object' &&
-            cell.value !== null &&
-            'text' in cell.value
-              ? (cell.value as any).text
-              : (cell.value ?? '');
-
-          let bgColor: string | null = null;
-          const fill = cell.fill as ExcelJS.FillPattern | undefined;
-
-          if (fill?.type === 'pattern' && fill.fgColor?.argb) {
-            bgColor = `#${fill.fgColor.argb}`;
-          }
-
-          const keyResult = i <= headerRow ? 'headers' : 'items';
-
-          results[keyResult].push({
-            address,
-            colLetter,
-            colNumber,
-            value,
-            bgColor,
-          });
-        });
-      }
-    } finally {
-      fs.unlinkSync(nameFile);
-    }
+    await workbook.xlsx.readFile(filePath);
 
     return {
-      code: HttpStatus.OK,
-      message: 'Success',
-      data: results,
+      fileID,
+      count: workbook.worksheets.length,
+      names: workbook.worksheets.map((ws) => ws.name),
     };
+  }
+
+  async convertToJson(user: TUserPayload, payload: DConvertToJSON) {
+    const { fileID, sheetName } = payload;
+    const results: IItemExcel[] = [];
+
+    const workbook = new ExcelJS.Workbook();
+    const filePath = this.getFilePath(fileID);
+
+    await workbook.xlsx.readFile(filePath);
+
+    const worksheet = workbook.getWorksheet(sheetName);
+    if (!worksheet)
+      throw new BadRequestException(
+        'Sheet yang dipilih tidak tersedia di file Excel',
+      );
+
+    const rowCount = worksheet?.actualRowCount;
+    if (rowCount > 30)
+      throw new BadRequestException('Data worksheet terlalu besar');
+
+    for (let i = 1; i <= rowCount; i++) {
+      const row = worksheet.getRow(i);
+
+      row.eachCell((cell, colNumber) => {
+        const colLetter = cell.address.replace(/[0-9]/g, '');
+        const address = cell.address;
+
+        const value =
+          typeof cell.value === 'object' &&
+          cell.value !== null &&
+          'text' in cell.value
+            ? cell.value.text
+            : (cell.value ?? '');
+
+        let bgColor: string | null = null;
+        const fill = cell.fill as ExcelJS.FillPattern | undefined;
+
+        if (fill?.type === 'pattern' && fill.fgColor?.argb)
+          bgColor = `#${fill.fgColor.argb}`;
+
+        const fontColor: string | null = cell.font.color?.argb ?? null;
+        const alignment: Partial<ExcelJS.Alignment> | null =
+          cell.style?.alignment ?? null;
+
+        results.push({
+          colLetter,
+          colNumber,
+          address,
+          bgColor,
+          fontColor,
+          value,
+          alignment,
+        });
+      });
+    }
+
+    // fs.unlink(filePath, () => {}); # hapus file
+
+    return results;
+  }
+
+  private getFilePath(fileId: string): string {
+    const filePath = path.join(this.basePath, `${fileId}.xlsx`);
+
+    if (!fs.existsSync(filePath))
+      throw new NotFoundException('File not found or expired');
+
+    return filePath;
   }
 }

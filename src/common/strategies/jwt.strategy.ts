@@ -1,4 +1,4 @@
-import { UserPayload } from '#/common/types/user-payload.type';
+import { TUserPayload } from '#/common/types/user-payload.type';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -16,7 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(req: Request, payload: UserPayload) {
+  validate(req: Request, payload: TUserPayload) {
     req.auth = payload;
     return payload;
   }

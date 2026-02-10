@@ -1,5 +1,6 @@
 import { PrismaService } from '#/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { Prisma, PrismaClient } from 'generated/prisma/client';
 
 @Injectable()
 export class UserRepository {
@@ -9,8 +10,11 @@ export class UserRepository {
     id: true,
     unique_code: true,
     email: true,
+    start_at: true,
+    end_at: true,
+    is_active: true,
     created_at: true,
-    user_password_user_password_user_idTouser: {
+    user_password: {
       where: { deleted_at: null },
       select: { password: true },
       take: 1,
@@ -26,30 +30,41 @@ export class UserRepository {
         },
       },
     },
-    user_detail_user_detail_user_idTouser: {
-      where: { deleted_at: null },
+    user_detail: {
       select: {
         avatar: true,
         fullname: true,
         address: true,
-        start_at: true,
-        end_at: true,
-        is_active: true,
       },
     },
   } as const;
 
+  async transaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
+    return this.prisma.$transaction(cb);
+  }
+
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({
+    return await this.prisma.users.findFirst({
       where: { email, deleted_at: null },
       select: this.baseUserSelect,
     });
   }
 
   async findByUniqueCode(code: string) {
-    return this.prisma.user.findUnique({
+    return await this.prisma.users.findUnique({
       where: { unique_code: code, deleted_at: null },
       select: this.baseUserSelect,
+    });
+  }
+
+  async createUser(
+    data: Prisma.usersCreateInput,
+    prisma?: PrismaClient | Prisma.TransactionClient,
+  ) {
+    const prismaTx = prisma ?? this.prisma;
+    return await prismaTx.users.create({
+      data,
+      select: { id: true, unique_code: true },
     });
   }
 }

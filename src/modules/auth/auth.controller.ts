@@ -1,6 +1,6 @@
 import { JwtRefreshAuthGuard } from '#/common/guards/refresh-jwt.guard';
 import { AuthService } from '#/modules/auth/auth.service';
-import { LoginDTO } from '#/modules/auth/dto';
+import { LoginDTO, RegisterDTO } from '#/modules/auth/dto';
 import {
   Body,
   Controller,
@@ -26,10 +26,27 @@ export class AuthController {
 
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: false, // postman
+      secure: true,
       sameSite: 'strict',
       path: '/auth/refresh',
-      // secure: true,
+    });
+
+    return { accessToken };
+  }
+
+  @Post('register')
+  @HttpCode(200)
+  async register(
+    @Body() body: RegisterDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken } = await this.authService.register(body);
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      path: '/auth/refresh',
     });
 
     return { accessToken };
@@ -48,7 +65,7 @@ export class AuthController {
 
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      // secure: false,
+      secure: true,
       sameSite: 'strict',
       path: '/auth/refresh',
     });
