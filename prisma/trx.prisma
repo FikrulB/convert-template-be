@@ -1,0 +1,85 @@
+model excel_mapping_detail {
+  id                  BigInt         @id @default(autoincrement())
+  mapping_id          BigInt
+  target_column_id    BigInt?
+  source_column_index Int?
+  source_column_name  String?        @db.VarChar(100)
+  source_label        String?        @db.VarChar(100)
+  mapping_type        String?        @db.VarChar(50)
+  formula_expression  String?
+  excel_mappings      excel_mappings @relation(fields: [mapping_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_mapping_detail_mapping")
+
+  @@schema("trx")
+}
+
+model excel_mappings {
+  id                   BigInt                 @id @default(autoincrement())
+  code                 String?                @db.VarChar(50)
+  name                 String?                @db.VarChar(100)
+  description          String?
+  user_id              BigInt?
+  template_id          BigInt?
+  created_at           DateTime?              @db.Timestamp(6)
+  created_by           BigInt?
+  updated_at           DateTime?              @db.Timestamp(6)
+  updated_by           BigInt?
+  deleted_at           DateTime?              @db.Timestamp(6)
+  deleted_by           BigInt?
+  excel_mapping_detail excel_mapping_detail[]
+  excel_templates      excel_templates?       @relation(fields: [template_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_excel_mappings_template")
+  users                users?                 @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "fk_excel_mappings_user")
+
+  @@schema("trx")
+}
+
+model excel_template_detail {
+  id               BigInt          @id @default(autoincrement())
+  template_id      BigInt
+  column_index     Int?
+  column_name      String?         @db.VarChar(100)
+  row_index        Int?
+  label            String?         @db.VarChar(100)
+  is_required      Boolean?        @default(false)
+  alignment        Json?
+  font_color       String?         @db.VarChar(20)
+  background_color String?         @db.VarChar(20)
+  excel_templates  excel_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_template_detail_template")
+
+  @@unique([template_id, row_index, column_index], map: "uq_template_detail_position")
+  @@schema("trx")
+}
+
+model excel_template_order {
+  id               BigInt          @id @default(autoincrement())
+  template_id      BigInt
+  column_index     Int?
+  column_name      String?         @db.VarChar(100)
+  row_index        Int?
+  row_order_number Int?
+  excel_templates  excel_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_template_order_template")
+
+  @@unique([template_id, row_index, row_order_number], map: "uq_template_order_position")
+  @@schema("trx")
+}
+
+model excel_templates {
+  id                    BigInt                  @id @default(autoincrement())
+  code                  String?                 @db.VarChar(50)
+  name                  String?                 @db.VarChar(100)
+  description           String?
+  data_orientation      String?                 @db.VarChar(20)
+  is_multiple_header    Boolean?                @default(false)
+  user_id               BigInt?
+  created_at            DateTime?               @db.Timestamp(6)
+  created_by            BigInt?
+  updated_at            DateTime?               @db.Timestamp(6)
+  updated_by            BigInt?
+  deleted_at            DateTime?               @db.Timestamp(6)
+  deleted_by            BigInt?
+  excel_mappings        excel_mappings[]
+  excel_template_detail excel_template_detail[]
+  excel_template_order  excel_template_order[]
+  users                 users?                  @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "fk_excel_templates_user")
+
+  @@schema("trx")
+}

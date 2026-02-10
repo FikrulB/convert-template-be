@@ -1,19 +1,45 @@
+model feature {
+  id           BigInt         @id(map: "feature_pk") @default(autoincrement())
+  code         String         @unique(map: "feature_unique") @db.VarChar(23)
+  name         String?        @db.VarChar
+  description  String?        @db.VarChar
+  created_at   DateTime       @default(now()) @db.Timestamp(6)
+  created_by   BigInt?
+  updated_at   DateTime?      @db.Timestamp(6)
+  updated_by   BigInt?
+  deleted_at   DateTime?      @db.Timestamp(6)
+  deleted_by   BigInt?
+  role_feature role_feature[]
+
+  @@index([deleted_at])
+  @@schema("mtr")
+}
+
 model role {
-  id                         BigInt      @id @default(autoincrement())
-  code                       String      @unique @db.Char(3)
-  name                       String      @db.VarChar(255)
-  created_at                 DateTime    @default(now()) @db.Timestamp(6)
-  created_by                 BigInt?
-  updated_at                 DateTime?   @db.Timestamp(6)
-  updated_by                 BigInt?
-  deleted_at                 DateTime?   @db.Timestamp(6)
-  deleted_by                 BigInt?
-  user_role_created_byTouser user?       @relation("role_created_byTouser", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_role_created_by")
-  user_role_deleted_byTouser user?       @relation("role_deleted_byTouser", fields: [deleted_by], references: [id], onUpdate: NoAction, map: "fk_role_deleted_by")
-  user_role_updated_byTouser user?       @relation("role_updated_byTouser", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_role_updated_by")
-  user_role                  user_role[]
+  id           BigInt         @id @default(autoincrement())
+  code         String         @unique @db.Char(3)
+  name         String         @db.VarChar(255)
+  created_at   DateTime       @default(now()) @db.Timestamp(6)
+  created_by   BigInt?
+  updated_at   DateTime?      @db.Timestamp(6)
+  updated_by   BigInt?
+  deleted_at   DateTime?      @db.Timestamp(6)
+  deleted_by   BigInt?
+  role_feature role_feature[]
+  user_role    user_role[]
 
   @@index([code], map: "idx_role_code")
   @@index([deleted_at], map: "idx_role_deleted_at")
+  @@schema("mtr")
+}
+
+model role_feature {
+  id         BigInt  @id(map: "role_feature_pk") @default(autoincrement())
+  role_id    BigInt
+  feature_id BigInt
+  feature    feature @relation(fields: [feature_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "role_feature_feature_fk")
+  role       role    @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "role_feature_role_fk")
+
+  @@unique([role_id, feature_id], map: "role_feature_unique")
   @@schema("mtr")
 }

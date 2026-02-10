@@ -44,18 +44,18 @@ async function main() {
       select: { id: true },
     });
 
-    await prisma.user.create({
+    await prisma.users.create({
       data: {
         unique_code: uniqueCode,
         email: 'mfikrulb@gmail.com',
-        user_detail_user_detail_user_idTouser: {
+        start_at: dayJs().utc().toDate(),
+        is_active: true,
+        user_detail: {
           create: {
             fullname: 'M Fikrul Bachtiar',
-            start_at: dayJs().utc().toDate(),
-            is_active: true,
           },
         },
-        user_password_user_password_user_idTouser: {
+        user_password: {
           create: { password },
         },
         user_role: {
