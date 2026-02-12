@@ -73,7 +73,6 @@ model users {
   user_password       user_password[]
   user_role           user_role?
 
-  @@unique([email, deleted_at], map: "users_unique")
   @@index([deleted_at], map: "idx_user_deleted_at")
   @@schema("usr")
 }

@@ -6,3 +6,17 @@ export const ToNumber = () =>
       ? undefined
       : Number(value),
   );
+
+export const ToBoolean = () =>
+  Transform(({ value }) => {
+    if (typeof value === 'boolean') return value;
+
+    if (typeof value === 'string') {
+      const normalized = value.toLowerCase().trim();
+
+      if (normalized === 'true' || normalized === '1') return true;
+      if (normalized === 'false' || normalized === '0') return false;
+    }
+
+    return '__INVALID_BOOLEAN__';
+  });

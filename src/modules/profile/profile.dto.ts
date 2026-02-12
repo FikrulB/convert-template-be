@@ -17,5 +17,5 @@ export class UpdateProfileDTO {
   @Matches(/^[0-9]{9,15}$/, {
     message: 'Nomor HP harus berupa angka 9-15 digit',
   })
-  phone_number?: string;
+  phoneNumber?: string;
 }

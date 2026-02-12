@@ -5,15 +5,29 @@ const moduleName = process.argv[2];
 
 if (!moduleName) {
   console.error(
-    '❌ Please provide a module name. Example: pnpm module:create User',
+    '❌ Please provide a module name. Example: pnpm module:create excel-mapping',
   );
   process.exit(1);
 }
 
-// Name formats
-const folderName = moduleName.toLowerCase();
-const className = moduleName.charAt(0).toUpperCase() + moduleName.slice(1);
-const fileName = folderName;
+// =========================
+// 🔥 NAME FORMAT HANDLER
+// =========================
+
+// kebab-case → camelCase
+const toCamelCase = (str: string) =>
+  str.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+
+// kebab-case → PascalCase
+const toPascalCase = (str: string) => {
+  const camel = toCamelCase(str);
+  return camel.charAt(0).toUpperCase() + camel.slice(1);
+};
+
+const folderName = moduleName.toLowerCase(); // excel-mapping
+const fileName = folderName; // excel-mapping
+const className = toPascalCase(moduleName); // ExcelMapping
+const variableName = className.charAt(0).toLowerCase() + className.slice(1); // excelMapping
 
 const baseDir = path.join('src/modules', folderName);
 const appModulePath = 'src/app.module.ts';
@@ -28,14 +42,17 @@ if (fs.existsSync(baseDir)) {
 fs.mkdirSync(baseDir, { recursive: true });
 fs.mkdirSync(path.join(baseDir, 'dto'), { recursive: true });
 
-// Templates
+// =========================
+// 📄 TEMPLATES
+// =========================
+
 const controllerTemplate = `
 import { Controller } from '@nestjs/common';
 import { ${className}Service } from './${fileName}.service';
 
 @Controller('${fileName}')
 export class ${className}Controller {
-  constructor(private readonly ${fileName}Service: ${className}Service) {}
+  constructor(private readonly ${variableName}Service: ${className}Service) {}
 }
 `.trim();
 
@@ -45,7 +62,9 @@ import { ${className}Repository } from './${fileName}.repository';
 
 @Injectable()
 export class ${className}Service {
-  constructor(private readonly ${className.toLowerCase()}Repo: ${className}Repository) {}
+  constructor(
+    private readonly ${variableName}Repository: ${className}Repository,
+  ) {}
 }
 `.trim();
 
@@ -55,7 +74,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ${className}Repository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 }
 `.trim();
 
@@ -73,7 +92,10 @@ import { ${className}Repository } from './${fileName}.repository';
 export class ${className}Module {}
 `.trim();
 
-// Write Files
+// =========================
+// 📝 WRITE FILES
+// =========================
+
 fs.writeFileSync(
   path.join(baseDir, `${fileName}.controller.ts`),
   controllerTemplate,
@@ -85,11 +107,14 @@ fs.writeFileSync(
 );
 fs.writeFileSync(path.join(baseDir, `${fileName}.module.ts`), moduleTemplate);
 fs.writeFileSync(
-  path.join(baseDir, 'dto/index.ts'),
+  path.join(baseDir, `${fileName}.dto.ts`),
   '// DTO exports placeholder',
 );
 
-// 🛠 Auto update AppModule
+// =========================
+// 🔁 AUTO UPDATE AppModule
+// =========================
+
 if (fs.existsSync(appModulePath)) {
   let appModule = fs.readFileSync(appModulePath, 'utf-8');
 

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProfileRepository } from './profile.repository';
 import { TUserPayload } from '#/common/types/user-payload.type';
-import { UpdateProfileDTO } from '#/modules/profile/dto';
+import { UpdateProfileDTO } from '#/modules/profile/profile.dto';
 
 @Injectable()
 export class ProfileService {
@@ -16,7 +16,7 @@ export class ProfileService {
       email: profile.email,
       address: profile.user_detail.address,
       avatar: profile.user_detail.avatar,
-      phone_number: profile.user_detail.phone_number,
+      phoneNumber: profile.user_detail.phone_number,
     };
   }
 
@@ -25,7 +25,7 @@ export class ProfileService {
     payload: UpdateProfileDTO,
     avatar?: Express.Multer.File,
   ) {
-    const { name, phone_number, email, address } = payload;
+    const { name, phoneNumber, email, address } = payload;
 
     if (avatar) {
       console.log('avatar ', avatar);
@@ -36,7 +36,7 @@ export class ProfileService {
       user_detail: {
         update: {
           fullname: name,
-          phone_number,
+          phone_number: phoneNumber,
           address,
         },
       },

@@ -1,6 +1,6 @@
 import { IItemExcel } from '#/modules/excel/excel.interface';
 import { TUserPayload } from '#/common/types/user-payload.type';
-import { DConvertToJSON } from '#/modules/excel/dto/excel.dto';
+import { DConvertToJSON } from '#/modules/excel/excel.dto';
 import {
   BadRequestException,
   Injectable,
@@ -58,11 +58,11 @@ export class ExcelService {
             ? cell.value.text
             : (cell.value ?? '');
 
-        let bgColor: string | null = null;
+        let backgroundColor: string | null = null;
         const fill = cell.fill as ExcelJS.FillPattern | undefined;
 
         if (fill?.type === 'pattern' && fill.fgColor?.argb)
-          bgColor = `#${fill.fgColor.argb}`;
+          backgroundColor = `#${fill.fgColor.argb}`;
 
         const fontColor: string | null = cell.font.color?.argb ?? null;
         const alignment: Partial<ExcelJS.Alignment> | null =
@@ -72,7 +72,7 @@ export class ExcelService {
           colLetter,
           colNumber,
           address,
-          bgColor,
+          backgroundColor,
           fontColor,
           value,
           alignment,

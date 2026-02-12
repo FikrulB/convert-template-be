@@ -1,6 +1,6 @@
 import { JwtRefreshAuthGuard } from '#/common/guards/refresh-jwt.guard';
 import { AuthService } from '#/modules/auth/auth.service';
-import { LoginDTO, RegisterDTO } from '#/modules/auth/dto';
+import { LoginDTO, RegisterDTO } from '#/modules/auth/auth.dto';
 import {
   Body,
   Controller,

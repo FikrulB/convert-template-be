@@ -36,7 +36,7 @@ async function main() {
 
     const password = await bcrypt.hash(
       process.env.SEED_USER_PASSWORD,
-      process.env.SALT_ROUND,
+      Number(process.env.SALT_ROUND),
     );
 
     const adminRole = await prisma.role.findFirst({
@@ -44,26 +44,57 @@ async function main() {
       select: { id: true },
     });
 
-    await prisma.users.create({
-      data: {
-        unique_code: uniqueCode,
-        email: 'mfikrulb@gmail.com',
-        start_at: dayJs().utc().toDate(),
-        is_active: true,
-        user_detail: {
-          create: {
-            fullname: 'M Fikrul Bachtiar',
+    const superAdmin = await prisma.users.findFirst({
+      where: { email: 'mfikrulb@gmail.com' },
+      select: { id: true },
+    });
+
+    if (!superAdmin)
+      await prisma.users.create({
+        data: {
+          unique_code: uniqueCode,
+          email: 'mfikrulb@gmail.com',
+          start_at: dayJs().utc().toDate(),
+          is_active: true,
+          user_detail: {
+            create: {
+              fullname: 'M Fikrul Bachtiar',
+            },
+          },
+          user_password: {
+            create: { password },
+          },
+          user_role: {
+            create: { role_id: adminRole.id },
           },
         },
-        user_password: {
-          create: { password },
-        },
-        user_role: {
-          create: { role_id: adminRole.id },
-        },
-      },
-    });
+      });
     console.log('✔️ User seeded\n');
+
+    console.log('🚀 Seeding Mapping Type...');
+    await prisma.mapping_type.createMany({
+      data: [
+        {
+          code: 'STA',
+          name: 'Static',
+          description:
+            'Nilai target selalu tetap (hardcoded), tidak tergantung isi Excel',
+        },
+        {
+          code: 'DYN',
+          name: 'Dynamic',
+          description: 'Nilai target diambil langsung dari sel Excel tertentu',
+        },
+        {
+          code: 'FRM',
+          name: 'Formula',
+          description:
+            'Nilai target dihasilkan dari perhitungan / manipulasi data',
+        },
+      ],
+      skipDuplicates: true,
+    });
+    console.log('✔️ Mapping Type seeded\n');
   } catch (err) {
     console.error('❌ Failed seeding Role:', err);
   }

@@ -3,44 +3,80 @@ import path from 'path';
 
 const prismaDir = 'prisma';
 const schemaPath = path.join(prismaDir, 'schema.prisma');
+const introspectedPath = path.join(prismaDir, 'introspected.prisma');
 
-function splitBySchema() {
-  const schema = fs.readFileSync(schemaPath, 'utf-8');
+function extractAndMergeModels(filePath: string): void {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const content: string = fs.readFileSync(filePath, 'utf-8');
 
   const modelRegex = /model\s+(\w+)\s+{[^}]*}/gms;
+  let match: RegExpExecArray | null;
+
+  while ((match = modelRegex.exec(content)) !== null) {
+    const block: string = match[0];
+    const modelName: string = match[1];
+
+    const schemaMatch: RegExpMatchArray | null =
+      block.match(/@@schema\("(.+?)"\)/);
+
+    const schemaName: string = schemaMatch?.[1] ?? 'public';
+    const targetFile: string = path.join(prismaDir, `${schemaName}.prisma`);
+
+    let existingContent = '';
+
+    if (fs.existsSync(targetFile)) {
+      existingContent = fs.readFileSync(targetFile, 'utf-8');
+
+      const modelExistsRegex = new RegExp(`model\\s+${modelName}\\s+{`, 'g');
+
+      if (modelExistsRegex.test(existingContent)) {
+        console.log(`⚠️  ${modelName} already exists in ${schemaName}.prisma`);
+        continue;
+      }
+
+      fs.appendFileSync(targetFile, `\n\n${block}\n`);
+      console.log(`➕ Appended ${modelName} → ${schemaName}.prisma`);
+    } else {
+      fs.writeFileSync(targetFile, `${block}\n`);
+      console.log(`✔ Created ${schemaName}.prisma with ${modelName}`);
+    }
+  }
+}
+
+function cleanMainSchema(): void {
+  const schema: string = fs.readFileSync(schemaPath, 'utf-8');
+
   const generatorRegex = /generator\s+[\s\S]*?}/g;
   const datasourceRegex = /datasource\s+[\s\S]*?}/g;
 
-  const generator = schema.match(generatorRegex)?.[0] ?? '';
-  const datasource = schema.match(datasourceRegex)?.[0] ?? '';
+  const generator: string = schema.match(generatorRegex)?.[0] ?? '';
+  const datasource: string = schema.match(datasourceRegex)?.[0] ?? '';
 
-  const schemas: Record<string, any> = {};
-
-  let match;
-  while ((match = modelRegex.exec(schema)) !== null) {
-    const block = match[0];
-    const modelName = match[1];
-
-    const schemaMatch = block.match(/@@schema\("(.+?)"\)/);
-    const schemaName = schemaMatch?.[1] ?? 'public';
-
-    if (!schemas[schemaName]) {
-      schemas[schemaName] = [];
-    }
-
-    schemas[schemaName].push(block);
-    console.log(`📌 ${modelName} → schema: ${schemaName}`);
-  }
-
-  Object.entries(schemas).forEach(([schemaName, blocks]) => {
-    const outFile = path.join(prismaDir, `${schemaName}.prisma`);
-    fs.writeFileSync(outFile, blocks.join('\n\n') + '\n');
-    console.log(`✔ Created: prisma/${schemaName}.prisma`);
-  });
-
-  // Overwrite schema.prisma back to minimal version
   fs.writeFileSync(schemaPath, `${generator}\n\n${datasource}\n`);
-  console.log('\n✨ Done! Schema cleaned and models split ✔');
+
+  console.log('🧹 schema.prisma cleaned (generator + datasource only)');
 }
 
-splitBySchema();
+function run(): void {
+  console.log('\n🚀 Processing schema.prisma...');
+  extractAndMergeModels(schemaPath);
+
+  cleanMainSchema();
+
+  console.log('\n🚀 Checking introspector.prisma...');
+  const introspectorExists: boolean = fs.existsSync(introspectedPath);
+
+  if (introspectorExists) {
+    extractAndMergeModels(introspectedPath);
+
+    fs.unlinkSync(introspectedPath);
+    console.log('🗑 introspector.prisma deleted');
+  }
+
+  console.log('\n✨ Done! All schemas merged safely ✔');
+}
+
+run();

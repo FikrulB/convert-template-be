@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { Request } from 'express';
-import { UpdateProfileDTO } from '#/modules/profile/dto';
+import { UpdateProfileDTO } from '#/modules/profile/profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import path from 'path';
 

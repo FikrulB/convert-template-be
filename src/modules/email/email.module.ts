@@ -26,7 +26,7 @@ import { join } from 'path';
           from: configService.get<string>('MAIL_FROM'),
         },
         template: {
-          dir: join(process.cwd(), 'dist/src/templates'),
+          dir: join(process.cwd(), 'dist/src/templates/email'),
           adapter: new PugAdapter(),
           options: {
             strict: true,

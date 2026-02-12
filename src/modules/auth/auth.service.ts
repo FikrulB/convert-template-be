@@ -4,7 +4,7 @@ import dayJs from '#/common/utils/dayjs.util';
 import { HashService } from '#/common/utils/encrypt.util';
 import { IUser } from '#/modules/auth/auth.interface';
 import { AuthRepository } from '#/modules/auth/auth.repository';
-import { LoginDTO, RegisterDTO } from '#/modules/auth/dto';
+import { LoginDTO, RegisterDTO } from '#/modules/auth/auth.dto';
 import { UserRepository } from '#/modules/user/user.repository';
 import {
   ConflictException,
@@ -32,7 +32,18 @@ export class AuthService {
     const user = await this.userRepo.findByEmail(email);
     if (!user) throw new NotFoundException('User tidak terdaftar');
 
-    this.validateUserStatus(user);
+    this.validateUserStatus({
+      email: user.email,
+      id: user.id,
+      uniqueCode: user.unique_code,
+      createdAt: user.created_at,
+      startAt: user.start_at,
+      endAt: user.end_at,
+      isActive: user.is_active,
+      userDetail: user.user_detail,
+      userPassword: user.user_password,
+      userRole: user.user_role,
+    });
 
     const passwords = user.user_password;
     const hashedPassword = passwords?.[0]?.password;
@@ -149,17 +160,17 @@ export class AuthService {
     if (!user)
       throw new ForbiddenException('Informasi pengguna tidak ditemukan.');
 
-    if (!user.is_active)
+    if (!user.isActive)
       throw new ForbiddenException(
         'Akun Anda sudah tidak aktif. Silakan hubungi administrator.',
       );
 
-    if (dayJs().isBefore(user.start_at))
+    if (dayJs().isBefore(user.startAt))
       throw new ForbiddenException(
         'Akun Anda belum dapat digunakan. Silakan hubungi administrator.',
       );
 
-    if (user.end_at && dayJs().isAfter(user.end_at))
+    if (user.endAt && dayJs().isAfter(user.endAt))
       throw new ForbiddenException(
         'Akun Anda tidak dapat digunakan. Silakan hubungi administrator.',
       );

@@ -1,6 +1,6 @@
 import { JwtAuthGuard } from '#/common/guards/jwt.guard';
 import { AnyFileRequiredPipe } from '#/common/pipes/required-files.pipe';
-import { DConvertToJSON } from '#/modules/excel/dto/excel.dto';
+import { DConvertToJSON } from '#/modules/excel/excel.dto';
 import { ExcelService } from '#/modules/excel/excel.service';
 import {
   BadRequestException,

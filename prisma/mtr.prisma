@@ -43,3 +43,19 @@ model role_feature {
   @@unique([role_id, feature_id], map: "role_feature_unique")
   @@schema("mtr")
 }
+
+model mapping_type {
+  id          Int       @id(map: "mapping_type_pk") @default(autoincrement())
+  code        String    @db.Char(3)
+  name        String    @db.VarChar
+  description String?
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  created_by  BigInt?
+  updated_at  DateTime? @db.Timestamp(6)
+  updated_by  BigInt?
+  deleted_at  DateTime? @db.Timestamp(6)
+  deleted_by  BigInt?
+
+  @@unique([code, deleted_at], map: "mapping_type_unique")
+  @@schema("mtr")
+}
