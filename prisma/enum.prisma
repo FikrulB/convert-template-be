@@ -1,0 +1,6 @@
+enum data_orientation {
+  VERTICAL
+  HORIZONTAL
+
+  @@schema("trx")
+}

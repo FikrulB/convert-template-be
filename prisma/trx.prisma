@@ -1,13 +1,13 @@
 model excel_mapping_detail {
-  id                  BigInt         @id @default(autoincrement())
-  mapping_id          BigInt
-  target_column_id    BigInt?
-  source_column_index Int?
-  source_column_name  String?        @db.VarChar(100)
-  source_label        String?        @db.VarChar(100)
-  mapping_type        String?        @db.VarChar(50)
-  formula_expression  String?
-  excel_mappings      excel_mappings @relation(fields: [mapping_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_mapping_detail_mapping")
+  id                    BigInt                @id @default(autoincrement())
+  mapping_id            BigInt
+  target_column_id      BigInt
+  source_column_index   Int
+  source_label          String?               @db.VarChar(100)
+  mapping_type          String?               @db.VarChar(50)
+  formula_expression    String?
+  excel_mappings        excel_mappings        @relation(fields: [mapping_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_mapping_detail_mapping")
+  excel_template_detail excel_template_detail @relation(fields: [target_column_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_excel_mapping_detail_template_detail")
 
   @@schema("trx")
 }
@@ -33,16 +33,17 @@ model excel_mappings {
 }
 
 model excel_template_detail {
-  id               BigInt          @id @default(autoincrement())
-  template_id      BigInt
-  column_index     Int?
-  row_index        Int?
-  label            String?         @db.VarChar(100)
-  is_required      Boolean?        @default(false)
-  alignment        Json?
-  font_color       String?         @db.VarChar(20)
-  background_color String?         @db.VarChar(20)
-  excel_templates  excel_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_template_detail_template")
+  id                   BigInt                 @id @default(autoincrement())
+  template_id          BigInt
+  column_index         Int?
+  row_index            Int?
+  label                String?                @db.VarChar(100)
+  is_required          Boolean?               @default(false)
+  alignment            Json?
+  font_color           String?                @db.VarChar(20)
+  background_color     String?                @db.VarChar(20)
+  excel_mapping_detail excel_mapping_detail[]
+  excel_templates      excel_templates        @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_template_detail_template")
 
   @@unique([template_id, row_index, column_index], map: "uq_template_detail_position")
   @@schema("trx")
@@ -52,7 +53,6 @@ model excel_template_order {
   id               BigInt          @id @default(autoincrement())
   template_id      BigInt
   column_index     Int?
-  column_name      String?         @db.VarChar(100)
   row_index        Int?
   row_order_number Int?
   excel_templates  excel_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_template_order_template")
@@ -66,8 +66,8 @@ model excel_templates {
   code                  String                  @unique(map: "excel_templates_unique") @db.VarChar(50)
   name                  String                  @db.VarChar(100)
   description           String?
-  data_orientation      String?                 @db.VarChar(20)
-  is_multiple_header    Boolean?                @default(false)
+  data_orientation      data_orientation
+  is_multiple_header    Boolean                 @default(false)
   user_id               BigInt
   created_at            DateTime                @default(now()) @db.Timestamp(6)
   created_by            BigInt?

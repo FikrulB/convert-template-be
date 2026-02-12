@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ToBoolean } from '#/common/utils/dto.util';
+import { createEnumMapper } from '#/common/utils/common.util';
 
 export enum EDataOrientation {
   VERTICAL = 'VERTICAL',
@@ -30,6 +31,11 @@ export enum EHorizontalAlignment {
   CENTER = 'center',
   RIGHT = 'right',
 }
+
+export const DataOrienTationMapper = createEnumMapper({
+  [EDataOrientation.VERTICAL]: 'VERTICAL',
+  [EDataOrientation.HORIZONTAL]: 'HORIZONTAL',
+});
 
 export class AlignmentCellDTO {
   @IsOptional()
@@ -64,10 +70,10 @@ export class TemplateDetailDTO {
   @IsBoolean({ message: 'IsRequired harus berupa boolean (true/false).' })
   isRequired: boolean = false;
 
-  @IsNotEmpty()
+  @IsOptional()
   @ValidateNested()
   @Type(() => AlignmentCellDTO)
-  alignment: AlignmentCellDTO;
+  alignment?: AlignmentCellDTO;
 
   @IsOptional()
   @IsHexColor({

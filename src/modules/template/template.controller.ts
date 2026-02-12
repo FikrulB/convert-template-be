@@ -1,3 +1,4 @@
+import { JwtAuthGuard } from '#/common/guards/jwt.guard';
 import { TemplateDTO } from '#/modules/template/template.dto';
 import { TemplateService } from '#/modules/template/template.service';
 import {
@@ -9,10 +10,12 @@ import {
   Patch,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 
 @Controller('templates')
+@UseGuards(JwtAuthGuard)
 export class TemplateController {
   constructor(private readonly templateService: TemplateService) {}
 

@@ -1,7 +1,12 @@
 import { TUserPayload } from '#/common/types/user-payload.type';
+import { makeRandomString } from '#/common/utils/common.util';
 import { EDataOrientation, TemplateDTO } from '#/modules/template/template.dto';
 import { TemplateRepository } from '#/modules/template/template.repository';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 @Injectable()
 export class TemplateService {
@@ -11,32 +16,42 @@ export class TemplateService {
     const { name, description, dataOrientation, isMultipleHeader, details } =
       payload;
 
+    if (!details.length)
+      throw new BadRequestException(
+        'Template harus memiliki minimal satu header.',
+      );
+
     const positionSet = new Set<string>();
     const rowIndexSet = new Set<number>();
     const columnIndexSet = new Set<number>();
     const labelSet = new Set<string>();
 
     for (const detail of details) {
+      if (detail.rowIndex < 0 || detail.columnIndex < 0)
+        throw new BadRequestException('Posisi baris dan kolom tidak valid.');
+
       const key = `${detail.rowIndex}-${detail.columnIndex}`;
 
       if (positionSet.has(key))
         throw new BadRequestException(
-          `Duplicate cell position di row ${detail.rowIndex}, column ${detail.columnIndex}`,
+          `Terdapat posisi sel yang sama pada baris ${detail.rowIndex} dan kolom ${detail.columnIndex}.`,
         );
 
       positionSet.add(key);
       rowIndexSet.add(detail.rowIndex);
       columnIndexSet.add(detail.columnIndex);
 
-      if (!detail.label || detail.label.trim() === '')
-        throw new BadRequestException('Label tidak boleh kosong');
+      const normalizedLabel = detail.label.trim().toLowerCase();
 
-      if (labelSet.has(detail.label))
+      if (!normalizedLabel)
+        throw new BadRequestException('Label header wajib diisi.');
+
+      if (labelSet.has(normalizedLabel))
         throw new BadRequestException(
-          `Duplicate label "${detail.label}" ditemukan pada template`,
+          `Label "${detail.label}" sudah digunakan dalam template ini.`,
         );
 
-      labelSet.add(detail.label);
+      labelSet.add(normalizedLabel);
     }
 
     const headerIndexes =
@@ -49,28 +64,75 @@ export class TemplateService {
     if (isMultipleHeader) {
       if (headerIndexes.length < 2)
         throw new BadRequestException(
-          'Multiple header aktif, tapi hanya ada 1 header',
+          'Minimal harus terdapat dua header saat multiple header diaktifkan.',
         );
 
       for (let i = 1; i < headerIndexes.length; i++) {
         if (headerIndexes[i] !== headerIndexes[i - 1] + 1)
-          throw new BadRequestException('Header harus berurutan tanpa gap');
+          throw new BadRequestException(
+            'Header harus disusun berurutan tanpa jeda.',
+          );
       }
     } else {
       if (headerIndexes.length !== 1)
         throw new BadRequestException(
-          'Template tidak boleh memiliki lebih dari 1 header',
+          'Template hanya boleh memiliki satu header.',
         );
     }
 
-    // const duplicateNameTemplate = await this.
+    const randomString = makeRandomString({
+      length: 50,
+      isLowerCase: false,
+      isUpperCase: true,
+      isNumeric: true,
+    });
 
-    // await this.templateRepository.createTemplate({
-    //   name,
-    //   data_orientation: dataOrientation,
-    //   code: '',
-    // });
+    console.log('user.sub => ', user.sub);
 
-    return payload;
+    await this.templateRepository.transaction(async (trx) => {
+      const nameIsExist = await this.templateRepository.findByNameWithUser(
+        name,
+        user.sub,
+      );
+
+      if (nameIsExist)
+        throw new ConflictException(
+          'Nama template sudah digunakan. Silakan gunakan nama lain.',
+        );
+
+      return await this.templateRepository.createTemplate(
+        {
+          name,
+          description,
+          data_orientation: dataOrientation,
+          is_multiple_header: isMultipleHeader,
+          code: randomString,
+          users: {
+            connect: { unique_code: user.sub },
+          },
+          excel_template_detail: {
+            createMany: {
+              data: details.map((d) => ({
+                column_index: d.columnIndex,
+                row_index: d.rowIndex,
+                label: d.label,
+                is_required: d.isRequired,
+                alignment: d.alignment
+                  ? {
+                      vertical: d.alignment.vertical,
+                      horizontal: d.alignment.horizontal,
+                    }
+                  : null,
+                font_color: d.fontColor,
+                background_color: d.backgroundColor,
+              })),
+            },
+          },
+        },
+        trx,
+      );
+    });
+
+    return;
   }
 }

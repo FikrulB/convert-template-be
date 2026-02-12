@@ -1,6 +1,6 @@
 import { PrismaService } from '#/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from 'generated/prisma/client';
+import { Prisma, PrismaClient } from 'generated/prisma/client';
 
 @Injectable()
 export class TemplateRepository {
@@ -25,6 +25,10 @@ export class TemplateRepository {
     },
   } satisfies Prisma.excel_templatesSelect;
 
+  transaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
+    return this.prisma.$transaction(cb);
+  }
+
   findByCode(code: string) {
     return this.prisma.excel_templates.findUnique({
       where: { code },
@@ -32,14 +36,18 @@ export class TemplateRepository {
     });
   }
 
-  findByNameWithUser(name: string, userId: bigint) {
+  findByNameWithUser(name: string, userCode: string) {
     return this.prisma.excel_templates.findFirst({
-      where: { name, user_id: userId },
+      where: { name, deleted_at: null, users: { unique_code: userCode } },
       select: this.templateSelect,
     });
   }
 
-  createTemplate(data: Prisma.excel_templatesCreateInput) {
-    return this.prisma.excel_templates.create({ data });
+  createTemplate(
+    data: Prisma.excel_templatesCreateInput,
+    prisma?: PrismaClient | Prisma.TransactionClient,
+  ) {
+    const prismaTx = prisma ?? this.prisma;
+    return prismaTx.excel_templates.create({ data });
   }
 }

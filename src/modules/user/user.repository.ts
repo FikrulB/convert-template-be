@@ -1,70 +1,66 @@
+import { UserProjection } from '#/modules/user/user.projection';
 import { PrismaService } from '#/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { Prisma, PrismaClient } from 'generated/prisma/client';
+import { Prisma } from 'generated/prisma/client';
 
 @Injectable()
 export class UserRepository {
   constructor(private prisma: PrismaService) {}
 
-  private baseUserSelect = {
-    id: true,
-    unique_code: true,
-    email: true,
-    start_at: true,
-    end_at: true,
-    is_active: true,
-    created_at: true,
-    user_password: {
-      where: { deleted_at: null },
-      select: { password: true },
-      take: 1,
-    },
-    user_role: {
-      where: { role: { deleted_at: null } },
-      select: {
-        role: {
-          select: {
-            code: true,
-            name: true,
-          },
-        },
-      },
-    },
-    user_detail: {
-      select: {
-        avatar: true,
-        fullname: true,
-        address: true,
-      },
-    },
-  } as const;
-
   async transaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
     return this.prisma.$transaction(cb);
   }
 
-  async findByEmail(email: string) {
-    return await this.prisma.users.findFirst({
-      where: { email, deleted_at: null },
-      select: this.baseUserSelect,
-    });
+  findByEmail<T extends Prisma.usersSelect>(email: string, select?: T) {
+    return this.prisma.users.findFirst({
+      where: {
+        email,
+        deleted_at: null,
+      },
+      select: (select ?? UserProjection.base) as T,
+    }) as Promise<Prisma.usersGetPayload<{ select: T }>>;
   }
 
-  async findByUniqueCode(code: string) {
-    return await this.prisma.users.findUnique({
-      where: { unique_code: code, deleted_at: null },
-      select: this.baseUserSelect,
-    });
+  findByUniqueCode<T extends Prisma.usersSelect>(code: string, select?: T) {
+    return this.prisma.users.findFirst({
+      where: {
+        unique_code: code,
+        deleted_at: null,
+      },
+      select: (select ?? UserProjection.base) as T,
+    }) as Promise<Prisma.usersGetPayload<{ select: T }>>;
+  }
+
+  findActiveAuthUser<T extends Prisma.usersSelect>(
+    uniqueCode: string,
+    select?: T,
+  ) {
+    const now = new Date();
+
+    return this.prisma.users.findFirst({
+      where: {
+        unique_code: uniqueCode,
+        deleted_at: null,
+        is_active: true,
+        start_at: { lte: now },
+        OR: [{ end_at: null }, { end_at: { gte: now } }],
+      },
+      select: (select ?? UserProjection.base) as T,
+    }) as Promise<Prisma.usersGetPayload<{ select: T }>>;
   }
 
   async createUser(
     data: Prisma.usersCreateInput,
-    prisma?: PrismaClient | Prisma.TransactionClient,
+    prisma?: Prisma.TransactionClient,
   ) {
-    const prismaTx = prisma ?? this.prisma;
-    return await prismaTx.users.create({
+    const db = prisma ?? this.prisma;
+
+    return await db.users.create({
       data,
-      select: { id: true, unique_code: true },
+      select: {
+        id: true,
+        unique_code: true,
+      },
     });
   }
 }

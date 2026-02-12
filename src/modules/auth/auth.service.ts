@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { UserProjection } from '#/modules/user/user.projection';
 
 @Injectable()
 export class AuthService {
@@ -29,7 +30,10 @@ export class AuthService {
   async login(payload: LoginDTO) {
     const { email, password } = payload;
 
-    const user = await this.userRepo.findByEmail(email);
+    const user = await this.userRepo.findByEmail(
+      email,
+      UserProjection.profileWithPassword,
+    );
     if (!user) throw new NotFoundException('User tidak terdaftar');
 
     this.validateUserStatus({

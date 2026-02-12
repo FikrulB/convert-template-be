@@ -40,3 +40,31 @@ export function makeRandomString({
 
   return result;
 }
+
+export function createEnumMapper<const M extends Record<string, string>>(
+  toPrismaMap: M,
+) {
+  type AppEnum = keyof M;
+  type PrismaEnum = M[keyof M];
+
+  const fromPrismaMap = Object.entries(toPrismaMap).reduce(
+    (acc, [key, val]) => {
+      acc[val as PrismaEnum] = key as AppEnum;
+      return acc;
+    },
+    {} as Record<PrismaEnum, AppEnum>,
+  );
+
+  return {
+    toPrisma(value: AppEnum): PrismaEnum {
+      const prismaValue = toPrismaMap[value];
+      if (!prismaValue) throw new Error(`Invalid enum value: ${String(value)}`);
+      return prismaValue;
+    },
+    fromPrisma(value: PrismaEnum): AppEnum {
+      const appValue = fromPrismaMap[value];
+      if (!appValue) throw new Error(`Invalid Prisma enum: ${value}`);
+      return appValue;
+    },
+  };
+}

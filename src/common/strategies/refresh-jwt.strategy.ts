@@ -1,5 +1,5 @@
 import { TUserPayload } from '#/common/types/user-payload.type';
-import { PrismaService } from '#/prisma/prisma.service';
+import { UserRepository } from '#/modules/user/user.repository';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -13,7 +13,7 @@ export class RefreshJwtStrategy extends PassportStrategy(
   'refresh-jwt',
 ) {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly userRepository: UserRepository,
     private readonly configService: ConfigService,
   ) {
     super({
@@ -26,23 +26,28 @@ export class RefreshJwtStrategy extends PassportStrategy(
 
   async validate(req: Request, payload: TUserPayload): Promise<TUserPayload> {
     const refreshToken = (req.cookies as Record<string, string>)?.refresh_token;
-    if (!refreshToken) throw new UnauthorizedException('Refresh token hilang');
+    if (!refreshToken)
+      throw new UnauthorizedException(
+        'Sesi Anda telah berakhir. Silakan login kembali.',
+      );
 
-    const user = await this.prisma.users.findUnique({
-      where: { unique_code: payload.sub, deleted_at: null },
-      select: {
-        user_authentication: {
-          select: { refresh_token: true },
-        },
-      },
-    });
+    const user = await this.userRepository.findActiveAuthUser(payload.sub);
+    if (!user)
+      throw new UnauthorizedException(
+        'Sesi Anda telah berakhir atau akun tidak aktif. Silakan login kembali.',
+      );
 
-    const storedToken = user?.user_authentication?.refresh_token;
+    const storedToken = user.user_authentication?.refresh_token;
     if (!storedToken)
-      throw new UnauthorizedException('User tidak punya refresh token');
+      throw new UnauthorizedException(
+        'Sesi Anda telah berakhir. Silakan login kembali.',
+      );
 
     const valid = await bcrypt.compare(refreshToken, storedToken);
-    if (!valid) throw new UnauthorizedException('Refresh token tidak valid');
+    if (!valid)
+      throw new UnauthorizedException(
+        'Sesi Anda telah berakhir. Silakan login kembali.',
+      );
 
     req.auth = payload;
     return payload;
