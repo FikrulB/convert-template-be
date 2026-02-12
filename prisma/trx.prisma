@@ -27,7 +27,7 @@ model excel_mappings {
   deleted_by           BigInt?
   excel_mapping_detail excel_mapping_detail[]
   excel_templates      excel_templates?       @relation(fields: [template_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_excel_mappings_template")
-  users                users                  @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_excel_mappings_user")
+  users                users                  @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_excel_mappings_user")
 
   @@schema("trx")
 }
@@ -78,7 +78,7 @@ model excel_templates {
   excel_mappings        excel_mappings[]
   excel_template_detail excel_template_detail[]
   excel_template_order  excel_template_order[]
-  users                 users                   @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_excel_templates_user")
+  users                 users                   @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_excel_templates_user")
 
   @@schema("trx")
 }
