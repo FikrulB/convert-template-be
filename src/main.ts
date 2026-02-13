@@ -1,12 +1,14 @@
 import { AppModule } from '#/app.module';
 import { GlobalExceptionFilter } from '#/common/filters/exception.filter';
 import { ResponseInterceptor } from '#/common/interceptors/response.interceptor';
+import { IFormattedError } from '#/common/interfaces/format-error.interface';
 import {
   BadRequestException,
   HttpStatus,
   ValidationPipe,
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { ValidationError } from 'class-validator';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
@@ -25,18 +27,30 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       stopAtFirstError: true,
       exceptionFactory: (errors) => {
-        const formattedErrors = errors.flatMap((error) => {
-          return Object.values(error.constraints).map((message) => ({
-            field: error.property,
-            message,
-          }));
-        });
+        const formattedErrors = (error: ValidationError[]) => {
+          const errMsg: IFormattedError[] = [];
+          error.forEach((err) => {
+            if (err.constraints)
+              errMsg.push(
+                ...Object.values(err.constraints).map((message) => ({
+                  field: err.property,
+                  message,
+                })),
+              );
+
+            if (err.children) errMsg.push(...formattedErrors(err.children));
+          });
+
+          return errMsg;
+        };
+
+        const errorMessages = formattedErrors(errors);
 
         return new BadRequestException({
           code: HttpStatus.BAD_REQUEST,
           message: 'Permintaan tidak valid. Silakan periksa dan coba lagi.',
           data: null,
-          error: formattedErrors,
+          error: errorMessages,
         });
       },
     }),

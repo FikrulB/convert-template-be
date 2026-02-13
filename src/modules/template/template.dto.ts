@@ -10,10 +10,12 @@ import {
   Min,
   ArrayMinSize,
   IsArray,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ToBoolean } from '#/common/utils/dto.util';
 import { createEnumMapper } from '#/common/utils/common.util';
+import { Record } from '#/common/decorators/record.decorator';
 
 export enum EDataOrientation {
   VERTICAL = 'VERTICAL',
@@ -89,6 +91,33 @@ export class TemplateDetailDTO {
   backgroundColor?: string;
 }
 
+export class HeadersDTO {
+  @IsBoolean({
+    message: 'Pengaturan "Multiple Data" harus berupa true atau false.',
+  })
+  @ToBoolean()
+  isMultiple: boolean = false;
+}
+
+export class HeadersSettingDTO {
+  @IsNotEmpty({
+    message: 'Kolom penanda dokumen tidak boleh kosong.',
+  })
+  @IsString({
+    message: 'Kolom penanda dokumen harus berupa teks.',
+  })
+  groupingColumnLabel: string;
+
+  @IsObject({
+    message: 'Pengaturan header harus berupa objek.',
+  })
+  @Record(HeadersDTO, {
+    message:
+      'Terdapat kesalahan pada pengaturan header. Pastikan setiap header memiliki konfigurasi yang benar.',
+  })
+  headers: Record<string, HeadersDTO>;
+}
+
 export class TemplateDTO {
   @IsNotEmpty({ message: 'Name tidak boleh kosong.' })
   @IsString({ message: 'Name harus berupa string.' })
@@ -107,6 +136,11 @@ export class TemplateDTO {
   @ToBoolean()
   @IsBoolean({ message: 'isMultipleHeader harus berupa boolean (true/false).' })
   isMultipleHeader: boolean = false;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HeadersSettingDTO)
+  headersSetting?: HeadersSettingDTO;
 
   @IsArray({ message: 'Detail template harus berupa array.' })
   @ArrayMinSize(1, {

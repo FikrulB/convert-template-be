@@ -13,18 +13,30 @@ export class TemplateService {
   constructor(private readonly templateRepository: TemplateRepository) {}
 
   async create(user: TUserPayload, payload: TemplateDTO) {
-    const { name, description, dataOrientation, isMultipleHeader, details } =
-      payload;
+    const {
+      name,
+      description,
+      dataOrientation,
+      isMultipleHeader,
+      headersSetting,
+      details,
+    } = payload;
 
     if (!details.length)
       throw new BadRequestException(
         'Template harus memiliki minimal satu header.',
       );
 
+    if (isMultipleHeader && !headersSetting)
+      throw new BadRequestException(
+        'Kolom penanda dokumen wajib diisi ketika menggunakan multiple header.',
+      );
+
+    let isGroupingKeyExist: boolean = true;
     const positionSet = new Set<string>();
     const rowIndexSet = new Set<number>();
     const columnIndexSet = new Set<number>();
-    const labelSet = new Set<string>();
+    // const labelSet = new Set<string>();
 
     for (const detail of details) {
       if (detail.rowIndex < 0 || detail.columnIndex < 0)
@@ -42,16 +54,31 @@ export class TemplateService {
       columnIndexSet.add(detail.columnIndex);
 
       const normalizedLabel = detail.label.trim().toLowerCase();
+      const normalizedGroupingColumnLabel = headersSetting.groupingColumnLabel
+        .trim()
+        .toLowerCase();
 
-      if (!normalizedLabel)
-        throw new BadRequestException('Label header wajib diisi.');
-
-      if (labelSet.has(normalizedLabel))
+      if (
+        isGroupingKeyExist &&
+        normalizedGroupingColumnLabel === normalizedLabel
+      )
         throw new BadRequestException(
-          `Label "${detail.label}" sudah digunakan dalam template ini.`,
+          'Kolom penanda dokumen tidak boleh digunakan lebih dari satu kali. Silakan pilih kolom yang berbeda.',
         );
 
-      labelSet.add(normalizedLabel);
+      if (normalizedGroupingColumnLabel === normalizedLabel)
+        isGroupingKeyExist = true;
+
+      //? LABEL apakah boleh ada yang sama? masih dipertanyakan
+      // if (!normalizedLabel)
+      //   throw new BadRequestException('Label header wajib diisi.');
+
+      // if (labelSet.has(normalizedLabel))
+      //   throw new BadRequestException(
+      //     `Label "${detail.label}" sudah digunakan dalam template ini.`,
+      //   );
+
+      // labelSet.add(normalizedLabel);
     }
 
     const headerIndexes =
@@ -73,6 +100,11 @@ export class TemplateService {
             'Header harus disusun berurutan tanpa jeda.',
           );
       }
+
+      if (headerIndexes.length !== Object.keys(headersSetting.headers).length)
+        throw new BadRequestException(
+          'Jumlah header yang diatur pada pengaturan tidak sesuai dengan jumlah header yang dibuat pada template. Pastikan keduanya sama.',
+        );
     } else {
       if (headerIndexes.length !== 1)
         throw new BadRequestException(
@@ -80,14 +112,17 @@ export class TemplateService {
         );
     }
 
+    if (!isGroupingKeyExist)
+      throw new BadRequestException(
+        'Kolom penanda dokumen yang dipilih tidak ditemukan pada template. Pastikan kolom tersebut sudah dimapping dengan benar.',
+      );
+
     const randomString = makeRandomString({
       length: 50,
       isLowerCase: false,
       isUpperCase: true,
       isNumeric: true,
     });
-
-    console.log('user.sub => ', user.sub);
 
     await this.templateRepository.transaction(async (trx) => {
       const nameIsExist = await this.templateRepository.findByNameWithUser(

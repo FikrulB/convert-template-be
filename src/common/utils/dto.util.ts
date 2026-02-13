@@ -9,7 +9,7 @@ export const ToNumber = () =>
 
 export const ToBoolean = () =>
   Transform(({ value }) => {
-    if (typeof value === 'boolean') return value;
+    if (typeof value === 'boolean') return Boolean(value);
 
     if (typeof value === 'string') {
       const normalized = value.toLowerCase().trim();

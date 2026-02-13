@@ -28,6 +28,7 @@ export class ExcelService {
   async convertToJson(user: TUserPayload, payload: DConvertToJSON) {
     const { fileID, sheetName } = payload;
     const results: IItemExcel[] = [];
+    const testReq = [];
 
     const workbook = new ExcelJS.Workbook();
     const filePath = this.getFilePath(fileID);
@@ -77,12 +78,22 @@ export class ExcelService {
           value,
           alignment,
         });
+
+        testReq.push({
+          columnIndex: colNumber,
+          rowIndex: row.number,
+          label: value,
+          isRequired: false,
+          alignment,
+          fontColor,
+          backgroundColor,
+        });
       });
     }
 
     // fs.unlink(filePath, () => {}); # hapus file
 
-    return results;
+    return { results, testReq };
   }
 
   private getFilePath(fileId: string): string {
