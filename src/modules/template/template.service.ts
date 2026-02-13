@@ -1,16 +1,29 @@
+import { ERole } from '#/common/enums/role.enum';
 import { TUserPayload } from '#/common/types/user-payload.type';
 import { makeRandomString } from '#/common/utils/common.util';
-import { EDataOrientation, TemplateDTO } from '#/modules/template/template.dto';
+import {
+  CodeParamDTO,
+  EDataOrientation,
+  TemplateDTO,
+} from '#/modules/template/template.dto';
+import { TemplateProjection } from '#/modules/template/template.projection';
 import { TemplateRepository } from '#/modules/template/template.repository';
+import { UserProjection } from '#/modules/user/user.projection';
+import { UserRepository } from '#/modules/user/user.repository';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 @Injectable()
 export class TemplateService {
-  constructor(private readonly templateRepository: TemplateRepository) {}
+  constructor(
+    private readonly templateRepository: TemplateRepository,
+    private readonly userRepository: UserRepository,
+  ) {}
 
   async create(user: TUserPayload, payload: TemplateDTO) {
     const {
@@ -126,6 +139,7 @@ export class TemplateService {
 
     await this.templateRepository.transaction(async (trx) => {
       const nameIsExist = await this.templateRepository.findByNameWithUser(
+        TemplateProjection.base,
         name,
         user.sub,
       );
@@ -168,6 +182,55 @@ export class TemplateService {
       );
     });
 
-    return;
+    return null;
+  }
+
+  async read(user: TUserPayload, param: CodeParamDTO) {
+    const isAdmin = user.role === ERole.ADM;
+    const template = await this.templateRepository.findByCode(
+      TemplateProjection.base,
+      param.code,
+      isAdmin ? undefined : user.sub,
+    );
+
+    if (!template)
+      throw new NotFoundException('Template yang Anda cari tidak ditemukan.');
+    return template;
+  }
+
+  async readAll(user: TUserPayload) {
+    const isAdmin = user.role === ERole.ADM;
+    return await this.templateRepository.findAll(
+      TemplateProjection.base,
+      isAdmin ? undefined : user.sub,
+    );
+  }
+
+  update(user: TUserPayload, payload: TemplateDTO, param: CodeParamDTO) {
+    const isAdmin = user.role === ERole.ADM;
+
+    return true;
+  }
+
+  async delete(user: TUserPayload, param: CodeParamDTO) {
+    const isAdmin = user.role === ERole.ADM;
+
+    const userInfo = await this.userRepository.findByUniqueCode(
+      UserProjection.base,
+      user.sub,
+    );
+
+    if (!userInfo) throw new UnauthorizedException('User tidak valid.');
+
+    const deleted = await this.templateRepository.deleteByCode(
+      param.code,
+      userInfo.id,
+      isAdmin,
+    );
+
+    if (!deleted)
+      throw new NotFoundException('Template yang Anda cari tidak ditemukan.');
+
+    return null;
   }
 }

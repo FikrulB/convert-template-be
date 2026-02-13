@@ -1,5 +1,5 @@
 import { JwtAuthGuard } from '#/common/guards/jwt.guard';
-import { TemplateDTO } from '#/modules/template/template.dto';
+import { CodeParamDTO, TemplateDTO } from '#/modules/template/template.dto';
 import { TemplateService } from '#/modules/template/template.service';
 import {
   Body,
@@ -7,6 +7,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  Param,
   Patch,
   Post,
   Req,
@@ -21,19 +22,35 @@ export class TemplateController {
 
   @Post()
   @HttpCode(200)
-  async create(@Req() req: Request, @Body() body: TemplateDTO) {
-    return await this.templateService.create(req.auth, body);
+  create(@Req() req: Request, @Body() body: TemplateDTO) {
+    return this.templateService.create(req.auth, body);
+  }
+
+  @Get()
+  @HttpCode(200)
+  async readAll(@Req() req: Request) {
+    return await this.templateService.readAll(req.auth);
   }
 
   @Get(':code')
   @HttpCode(200)
-  async read() {}
+  async read(@Req() req: Request, @Param() param: CodeParamDTO) {
+    return await this.templateService.read(req.auth, param);
+  }
 
   @Patch(':code')
   @HttpCode(200)
-  async update() {}
+  update(
+    @Req() req: Request,
+    @Body() body: TemplateDTO,
+    @Param() param: CodeParamDTO,
+  ) {
+    return this.templateService.update(req.auth, body, param);
+  }
 
   @Delete(':code')
   @HttpCode(200)
-  async kill() {}
+  delete(@Req() req: Request, @Param() param: CodeParamDTO) {
+    return this.templateService.delete(req.auth, param);
+  }
 }

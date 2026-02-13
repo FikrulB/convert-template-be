@@ -16,6 +16,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserProjection } from '#/modules/user/user.projection';
+import { EnumMapper } from '#/common/enums/role.enum';
 
 @Injectable()
 export class AuthService {
@@ -31,8 +32,8 @@ export class AuthService {
     const { email, password } = payload;
 
     const user = await this.userRepo.findByEmail(
-      email,
       UserProjection.profileWithPassword,
+      email,
     );
     if (!user) throw new NotFoundException('User tidak terdaftar');
 
@@ -60,10 +61,12 @@ export class AuthService {
     const accessToken = this.generateAccessToken({
       sub: user.unique_code,
       email: user.email,
+      role: EnumMapper.fromString(user.user_role.role.code),
     });
     const refreshToken = this.generateRefreshToken({
       sub: user.unique_code,
       email: user.email,
+      role: EnumMapper.fromString(user.user_role.role.code),
     });
 
     const [atHashed, rtHashed] = await Promise.all([
@@ -79,7 +82,10 @@ export class AuthService {
   async register(payload: RegisterDTO) {
     const { email, password, fullname } = payload;
 
-    const emailExist = await this.userRepo.findByEmail(email);
+    const emailExist = await this.userRepo.findByEmail(
+      UserProjection.base,
+      email,
+    );
     if (emailExist)
       throw new ConflictException(
         'Email ini tidak dapat digunakan untuk pendaftaran. Jika Anda sudah pernah membuat akun sebelumnya, silakan coba login.',
@@ -116,16 +122,21 @@ export class AuthService {
   }
 
   async refreshTokens(code: string) {
-    const user = await this.userRepo.findByUniqueCode(code);
+    const user = await this.userRepo.findByUniqueCode(
+      UserProjection.profile,
+      code,
+    );
     if (!user) throw new NotFoundException('User tidak terdaftar');
 
     const accessToken = this.generateAccessToken({
       sub: user.unique_code,
       email: user.email,
+      role: EnumMapper.fromString(user.user_role.role.code),
     });
     const refreshToken = this.generateRefreshToken({
       sub: user.unique_code,
       email: user.email,
+      role: EnumMapper.fromString(user.user_role.role.code),
     });
 
     const [atHashed, rtHashed] = await Promise.all([

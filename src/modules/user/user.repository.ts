@@ -1,4 +1,3 @@
-import { UserProjection } from '#/modules/user/user.projection';
 import { PrismaService } from '#/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from 'generated/prisma/client';
@@ -11,29 +10,29 @@ export class UserRepository {
     return this.prisma.$transaction(cb);
   }
 
-  findByEmail<T extends Prisma.usersSelect>(email: string, select?: T) {
+  findByEmail<T extends Prisma.usersSelect>(select: T, email: string) {
     return this.prisma.users.findFirst({
       where: {
         email,
         deleted_at: null,
       },
-      select: (select ?? UserProjection.base) as T,
-    }) as Promise<Prisma.usersGetPayload<{ select: T }>>;
+      select: select,
+    });
   }
 
-  findByUniqueCode<T extends Prisma.usersSelect>(code: string, select?: T) {
+  findByUniqueCode<T extends Prisma.usersSelect>(select: T, code: string) {
     return this.prisma.users.findFirst({
       where: {
         unique_code: code,
         deleted_at: null,
       },
-      select: (select ?? UserProjection.base) as T,
-    }) as Promise<Prisma.usersGetPayload<{ select: T }>>;
+      select: select,
+    });
   }
 
   findActiveAuthUser<T extends Prisma.usersSelect>(
+    select: T,
     uniqueCode: string,
-    select?: T,
   ) {
     const now = new Date();
 
@@ -45,8 +44,8 @@ export class UserRepository {
         start_at: { lte: now },
         OR: [{ end_at: null }, { end_at: { gte: now } }],
       },
-      select: (select ?? UserProjection.base) as T,
-    }) as Promise<Prisma.usersGetPayload<{ select: T }>>;
+      select: select,
+    });
   }
 
   async createUser(

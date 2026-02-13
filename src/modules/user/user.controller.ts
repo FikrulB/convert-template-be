@@ -9,13 +9,13 @@ export class UserController {
 
   @Get('/')
   @HttpCode(200)
-  getUser() {
+  read() {
     return 'test';
   }
 
   @Post('/')
   @HttpCode(200)
-  createUser() {
+  create() {
     return 'test';
   }
 }

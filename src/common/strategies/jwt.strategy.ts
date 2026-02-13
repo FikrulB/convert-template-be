@@ -1,4 +1,5 @@
 import { TUserPayload } from '#/common/types/user-payload.type';
+import { UserProjection } from '#/modules/user/user.projection';
 import { UserRepository } from '#/modules/user/user.repository';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -21,7 +22,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(req: Request, payload: TUserPayload) {
-    const user = await this.userRepository.findActiveAuthUser(payload.sub);
+    const user = await this.userRepository.findActiveAuthUser(
+      UserProjection.base,
+      payload.sub,
+    );
+
     if (!user)
       throw new UnauthorizedException(
         'Sesi Anda telah berakhir atau akun tidak aktif. Silakan login kembali.',

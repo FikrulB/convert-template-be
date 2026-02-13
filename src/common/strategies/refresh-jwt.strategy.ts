@@ -1,4 +1,5 @@
 import { TUserPayload } from '#/common/types/user-payload.type';
+import { UserProjection } from '#/modules/user/user.projection';
 import { UserRepository } from '#/modules/user/user.repository';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -31,7 +32,10 @@ export class RefreshJwtStrategy extends PassportStrategy(
         'Sesi Anda telah berakhir. Silakan login kembali.',
       );
 
-    const user = await this.userRepository.findActiveAuthUser(payload.sub);
+    const user = await this.userRepository.findActiveAuthUser(
+      UserProjection.auth,
+      payload.sub,
+    );
     if (!user)
       throw new UnauthorizedException(
         'Sesi Anda telah berakhir atau akun tidak aktif. Silakan login kembali.',

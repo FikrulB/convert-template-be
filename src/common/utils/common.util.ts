@@ -66,5 +66,11 @@ export function createEnumMapper<const M extends Record<string, string>>(
       if (!appValue) throw new Error(`Invalid Prisma enum: ${value}`);
       return appValue;
     },
+    fromString(value: string): AppEnum {
+      if (!(value in toPrismaMap)) {
+        throw new Error(`Invalid enum value "${value}".`);
+      }
+      return value as AppEnum;
+    },
   };
 }

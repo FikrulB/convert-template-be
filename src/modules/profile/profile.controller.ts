@@ -24,8 +24,8 @@ export class ProfileController {
 
   @Get('/me')
   @HttpCode(200)
-  async getProfile(@Req() req: Request) {
-    return await this.profileService.getProfile(req.auth);
+  async read(@Req() req: Request) {
+    return await this.profileService.read(req.auth);
   }
 
   @Patch('/me')
@@ -53,11 +53,11 @@ export class ProfileController {
     }),
   )
   @HttpCode(200)
-  async updateProfile(
+  async update(
     @Req() req: Request,
     @Body() body: UpdateProfileDTO,
     @UploadedFile() avatar: Express.Multer.File,
   ) {
-    await this.profileService.updateProfile(req.auth, body, avatar);
+    await this.profileService.update(req.auth, body, avatar);
   }
 }

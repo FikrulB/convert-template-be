@@ -39,6 +39,12 @@ export const DataOrienTationMapper = createEnumMapper({
   [EDataOrientation.HORIZONTAL]: 'HORIZONTAL',
 });
 
+export class CodeParamDTO {
+  @IsNotEmpty({ message: 'Kode template tidak boleh kosong.' })
+  @IsString({ message: 'Kode template harus berupa teks.' })
+  code: string;
+}
+
 export class AlignmentCellDTO {
   @IsOptional()
   @IsEnum(EVerticalAlignment, {

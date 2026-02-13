@@ -7,7 +7,7 @@ import { UpdateProfileDTO } from '#/modules/profile/profile.dto';
 export class ProfileService {
   constructor(private readonly repo: ProfileRepository) {}
 
-  async getProfile(user: TUserPayload) {
+  async read(user: TUserPayload) {
     const profile = await this.repo.findByUnique(user.sub);
     if (!profile) throw new NotFoundException('Profil Anda tidak ditemukan');
 
@@ -20,7 +20,7 @@ export class ProfileService {
     };
   }
 
-  async updateProfile(
+  async update(
     user: TUserPayload,
     payload: UpdateProfileDTO,
     avatar?: Express.Multer.File,
