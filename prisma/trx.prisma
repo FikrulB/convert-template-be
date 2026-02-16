@@ -16,9 +16,10 @@ model excel_mappings {
   id                   BigInt                 @id @default(autoincrement())
   code                 String                 @unique(map: "excel_mappings_unique") @db.VarChar(50)
   name                 String                 @db.VarChar(100)
-  description          String?
+  description          String?                @db.Text
   user_id              BigInt
   template_id          BigInt?
+  is_just_change       Boolean                @default(false)
   created_at           DateTime               @default(now()) @db.Timestamp(6)
   created_by           BigInt?
   updated_at           DateTime?              @db.Timestamp(6)
@@ -65,7 +66,7 @@ model excel_templates {
   id                    BigInt                  @id @default(autoincrement())
   code                  String                  @unique(map: "excel_templates_unique") @db.VarChar(50)
   name                  String                  @db.VarChar(100)
-  description           String?
+  description           String?                 @db.Text
   data_orientation      data_orientation
   is_multiple_header    Boolean                 @default(false)
   user_id               BigInt

@@ -1,5 +1,9 @@
 import { JwtAuthGuard } from '#/common/guards/jwt.guard';
-import { CodeParamDTO, TemplateDTO } from '#/modules/template/template.dto';
+import {
+  CodeParamDTO,
+  TemplateDTO,
+  UpdateTemplateDTO,
+} from '#/modules/template/template.dto';
 import { TemplateService } from '#/modules/template/template.service';
 import {
   Body,
@@ -42,7 +46,7 @@ export class TemplateController {
   @HttpCode(200)
   update(
     @Req() req: Request,
-    @Body() body: TemplateDTO,
+    @Body() body: UpdateTemplateDTO,
     @Param() param: CodeParamDTO,
   ) {
     return this.templateService.update(req.auth, body, param);

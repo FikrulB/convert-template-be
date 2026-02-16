@@ -22,12 +22,32 @@ export const TemplateSelectDetails = {
   },
 } satisfies Prisma.excel_templatesSelect;
 
+export const TemplateSelectOwner = {
+  users: {
+    select: {
+      unique_code: true,
+      user_detail: {
+        select: {
+          fullname: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.excel_templatesSelect;
+
 export const TemplateProjection = {
   base: {
     ...TemplateSelectBase,
   } satisfies Prisma.excel_templatesSelect,
   details: {
     ...TemplateSelectDetails,
+  } satisfies Prisma.excel_templatesSelect,
+  owner: {
+    ...TemplateSelectOwner,
+  } satisfies Prisma.excel_templatesSelect,
+  detailsWithOwner: {
+    ...TemplateSelectDetails,
+    ...TemplateSelectOwner,
   } satisfies Prisma.excel_templatesSelect,
   full: {
     ...TemplateSelectBase,

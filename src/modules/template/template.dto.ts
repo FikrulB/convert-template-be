@@ -16,6 +16,7 @@ import { Type } from 'class-transformer';
 import { ToBoolean } from '#/common/utils/dto.util';
 import { createEnumMapper } from '#/common/utils/common.util';
 import { Record } from '#/common/decorators/record.decorator';
+import { PartialType } from '@nestjs/mapped-types';
 
 export enum EDataOrientation {
   VERTICAL = 'VERTICAL',
@@ -156,3 +157,5 @@ export class TemplateDTO {
   @Type(() => TemplateDetailDTO)
   details: TemplateDetailDTO[];
 }
+
+export class UpdateTemplateDTO extends PartialType(TemplateDTO) {}
