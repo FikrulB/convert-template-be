@@ -26,8 +26,8 @@ export class ExcelController {
 
   @Post('/convert')
   @HttpCode(200)
-  async convertToJson(@Req() req: Request, @Body() body: DConvertToJSON) {
-    return await this.excelService.convertToJson(req.auth, body);
+  convertToJson(@Req() req: Request, @Body() body: DConvertToJSON) {
+    return this.excelService.convertToJson(req.auth, body);
   }
 
   @Post('/inspect')
@@ -55,15 +55,11 @@ export class ExcelController {
       limits: { files: 1, fileSize: 5 * 1024 * 1024 },
     }),
   )
-  async inspectExcel(
+  inspectExcel(
     @Req() req: Request,
     @UploadedFile(AnyFileRequiredPipe) file: Express.Multer.File,
   ) {
     const fileID = path.parse(file.filename).name;
-    return await this.excelService.getWorksheetInfo(
-      req.auth,
-      file.path,
-      fileID,
-    );
+    return this.excelService.getWorksheetInfo(req.auth, file.path, fileID);
   }
 }

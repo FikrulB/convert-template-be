@@ -32,14 +32,14 @@ export class TemplateController {
 
   @Get()
   @HttpCode(200)
-  async readAll(@Req() req: Request) {
-    return await this.templateService.readAll(req.auth);
+  readAll(@Req() req: Request) {
+    return this.templateService.readAll(req.auth);
   }
 
   @Get(':code')
   @HttpCode(200)
-  async read(@Req() req: Request, @Param() param: CodeParamDTO) {
-    return await this.templateService.read(req.auth, param);
+  read(@Req() req: Request, @Param() param: CodeParamDTO) {
+    return this.templateService.read(req.auth, param);
   }
 
   @Patch(':code')

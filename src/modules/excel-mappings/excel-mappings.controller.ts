@@ -9,7 +9,7 @@ export class ExcelMappingsController {
 
   @Post()
   @HttpCode(200)
-  async create(@Req() req: Request, body: ExcelMappingsDTO) {
-    return await this.excelMappingsService.create(req.auth, body);
+  create(@Req() req: Request, body: ExcelMappingsDTO) {
+    return this.excelMappingsService.create(req.auth, body);
   }
 }

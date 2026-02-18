@@ -24,8 +24,8 @@ export class ProfileController {
 
   @Get('/me')
   @HttpCode(200)
-  async read(@Req() req: Request) {
-    return await this.profileService.read(req.auth);
+  read(@Req() req: Request) {
+    return this.profileService.read(req.auth);
   }
 
   @Patch('/me')

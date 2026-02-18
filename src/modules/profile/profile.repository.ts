@@ -6,8 +6,8 @@ import { Prisma } from 'generated/prisma/client';
 export class ProfileRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findByUnique(uniqueCode: string) {
-    return await this.prisma.users.findUnique({
+  findByUnique(uniqueCode: string) {
+    return this.prisma.users.findUnique({
       where: { unique_code: uniqueCode },
       select: {
         email: true,
@@ -25,8 +25,8 @@ export class ProfileRepository {
     });
   }
 
-  async update(uniqueCode: string, data: Prisma.usersUpdateInput) {
-    return await this.prisma.users.update({
+  update(uniqueCode: string, data: Prisma.usersUpdateInput) {
+    return this.prisma.users.update({
       where: { unique_code: uniqueCode },
       data,
     });

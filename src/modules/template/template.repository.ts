@@ -45,12 +45,12 @@ export class TemplateRepository {
     });
   }
 
-  async createTemplate(
+  createTemplate(
     data: Prisma.excel_templatesCreateInput,
     prisma?: PrismaClient | Prisma.TransactionClient,
   ) {
     const prismaTx = prisma ?? this.prisma;
-    return await prismaTx.excel_templates.create({ data });
+    return prismaTx.excel_templates.create({ data });
   }
 
   async deleteByCode(

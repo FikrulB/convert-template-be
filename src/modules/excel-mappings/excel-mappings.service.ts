@@ -9,7 +9,7 @@ export class ExcelMappingsService {
     private readonly excelMappingsRepository: ExcelMappingsRepository,
   ) {}
 
-  async create(user: TUserPayload, payload: ExcelMappingsDTO) {
+  async create(_: TUserPayload, _1: ExcelMappingsDTO) {
     const template = await this.excelMappingsRepository.findTemplate();
 
     return template;

@@ -9,7 +9,7 @@ export class EmailController {
 
   @Post('/')
   @HttpCode(200)
-  async testSendMail() {
-    return await this.emailService.sendMail('mfikrulb@gmail.com');
+  testSendMail() {
+    return this.emailService.sendMail('mfikrulb@gmail.com');
   }
 }

@@ -27,6 +27,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Prisma } from 'generated/prisma/client';
 
 @Injectable()
 export class TemplateService {
@@ -35,229 +36,16 @@ export class TemplateService {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async create(user: TUserPayload, payload: TemplateDTO) {
-    const {
-      name,
-      description,
-      dataOrientation,
-      isMultipleHeader,
-      headersSetting,
-      details,
-    } = payload;
-
-    if (!details.length)
-      throw new BadRequestException(
-        'Template harus memiliki minimal satu header.',
-      );
-
-    if (isMultipleHeader && !headersSetting)
-      throw new BadRequestException(
-        'Kolom penanda dokumen wajib diisi ketika menggunakan multiple header.',
-      );
-
-    let isGroupingKeyExist: boolean = false;
-    const positionSet = new Set<string>();
-    const rowIndexSet = new Set<number>();
-    const columnIndexSet = new Set<number>();
-    // const labelSet = new Set<string>();
-
-    for (const detail of details) {
-      if (detail.rowIndex < 0 || detail.columnIndex < 0)
-        throw new BadRequestException('Posisi baris dan kolom tidak valid.');
-
-      const key = `${detail.rowIndex}-${detail.columnIndex}`;
-
-      if (positionSet.has(key))
-        throw new BadRequestException(
-          `Terdapat posisi sel yang sama pada baris ${detail.rowIndex} dan kolom ${detail.columnIndex}.`,
-        );
-
-      positionSet.add(key);
-      rowIndexSet.add(detail.rowIndex);
-      columnIndexSet.add(detail.columnIndex);
-
-      const normalizedLabel = detail.label.trim().toLowerCase();
-      const normalizedGroupingColumnLabel = headersSetting.groupingColumnLabel
-        .trim()
-        .toLowerCase();
-
-      if (
-        isGroupingKeyExist &&
-        normalizedGroupingColumnLabel === normalizedLabel
-      )
-        throw new BadRequestException(
-          'Kolom penanda dokumen tidak boleh digunakan lebih dari satu kali. Silakan pilih kolom yang berbeda.',
-        );
-
-      if (normalizedGroupingColumnLabel === normalizedLabel)
-        isGroupingKeyExist = true;
-
-      //? LABEL apakah boleh ada yang sama? masih dipertanyakan
-      // if (!normalizedLabel)
-      //   throw new BadRequestException('Label header wajib diisi.');
-
-      // if (labelSet.has(normalizedLabel))
-      //   throw new BadRequestException(
-      //     `Label "${detail.label}" sudah digunakan dalam template ini.`,
-      //   );
-
-      // labelSet.add(normalizedLabel);
-    }
-
-    const headerIndexes =
-      dataOrientation === EDataOrientation.VERTICAL
-        ? Array.from(rowIndexSet)
-        : Array.from(columnIndexSet);
-
-    headerIndexes.sort((a, b) => a - b);
-
-    if (isMultipleHeader) {
-      if (headerIndexes.length < 2)
-        throw new BadRequestException(
-          'Minimal harus terdapat dua header saat multiple header diaktifkan.',
-        );
-
-      for (let i = 1; i < headerIndexes.length; i++) {
-        if (headerIndexes[i] !== headerIndexes[i - 1] + 1)
-          throw new BadRequestException(
-            'Header harus disusun berurutan tanpa jeda.',
-          );
-      }
-
-      if (headerIndexes.length !== Object.keys(headersSetting.headers).length)
-        throw new BadRequestException(
-          'Jumlah header yang diatur pada pengaturan tidak sesuai dengan jumlah header yang dibuat pada template. Pastikan keduanya sama.',
-        );
-    } else {
-      if (headerIndexes.length !== 1)
-        throw new BadRequestException(
-          'Template hanya boleh memiliki satu header.',
-        );
-    }
-
-    if (!isGroupingKeyExist && isMultipleHeader)
-      throw new BadRequestException(
-        'Kolom penanda dokumen yang dipilih tidak ditemukan pada template. Pastikan kolom tersebut sudah dimapping dengan benar.',
-      );
-
-    const randomString = makeRandomString({
-      length: 50,
-      isLowerCase: false,
-      isUpperCase: true,
-      isNumeric: true,
-    });
-
-    await this.templateRepository.transaction(async (trx) => {
-      const nameIsExist = await this.templateRepository.findByNameWithUser(
-        TemplateProjection.base,
-        name,
-        user.sub,
-      );
-
-      if (nameIsExist)
-        throw new ConflictException(
-          'Nama template sudah digunakan. Silakan gunakan nama lain.',
-        );
-
-      return await this.templateRepository.createTemplate(
-        {
-          name,
-          description,
-          data_orientation: dataOrientation,
-          is_multiple_header: isMultipleHeader,
-          code: randomString,
-          users: {
-            connect: { unique_code: user.sub },
-          },
-          excel_template_detail: {
-            createMany: {
-              data: details.map((d) => ({
-                column_index: d.columnIndex,
-                row_index: d.rowIndex,
-                label: d.label,
-                is_required: d.isRequired,
-                alignment: d.alignment
-                  ? {
-                      vertical: d.alignment.vertical,
-                      horizontal: d.alignment.horizontal,
-                    }
-                  : null,
-                font_color: d.fontColor,
-                background_color: d.backgroundColor,
-              })),
-            },
-          },
-        },
-        trx,
-      );
-    });
-
-    return null;
+  read(user: TUserPayload, param: CodeParamDTO) {
+    return this.getTemplateOrThrow(user, param.code);
   }
 
-  async read(user: TUserPayload, param: CodeParamDTO) {
+  readAll(user: TUserPayload) {
     const isAdmin = user.role === ERole.ADM;
-    const template = await this.templateRepository.findByCode(
-      TemplateProjection.base,
-      param.code,
-      isAdmin ? undefined : user.sub,
-    );
-
-    if (!template)
-      throw new NotFoundException('Template yang Anda cari tidak ditemukan.');
-    return template;
-  }
-
-  async readAll(user: TUserPayload) {
-    const isAdmin = user.role === ERole.ADM;
-    return await this.templateRepository.findAll(
+    return this.templateRepository.findAll(
       TemplateProjection.base,
       isAdmin ? undefined : user.sub,
     );
-  }
-
-  async update(
-    user: TUserPayload,
-    payload: UpdateTemplateDTO,
-    param: CodeParamDTO,
-  ) {
-    const isAdmin = user.role === ERole.ADM;
-
-    const template = await this.templateRepository.findByCode(
-      TemplateProjection.baseDetailOwner,
-      param.code,
-      isAdmin ? undefined : user.sub,
-    );
-
-    if (!template) {
-      throw new NotFoundException('Template yang Anda cari tidak ditemukan.');
-    }
-
-    this.validateMultipleHeaderChange(template, payload);
-
-    if (payload.details) {
-      this.validateDetails(
-        payload.details,
-        payload.headersSetting,
-        payload.isMultipleHeader,
-      );
-    }
-
-    if (payload.dataOrientation && payload.details) {
-      this.validateOrientationChange(
-        template,
-        payload.dataOrientation,
-        payload.details,
-        payload.isMultipleHeader,
-        payload.headersSetting,
-      );
-    }
-
-    const diff = payload.details
-      ? this.buildDiff(template.excel_template_detail, payload.details)
-      : null;
-
-    return diff;
   }
 
   async delete(user: TUserPayload, param: CodeParamDTO) {
@@ -282,7 +70,83 @@ export class TemplateService {
     return null;
   }
 
-  private validateMultipleHeaderChange(
+  async create(user: TUserPayload, payload: TemplateDTO) {
+    this.validateTemplateStructure(payload);
+
+    const code = this.generateTemplateCode();
+
+    await this.ensureTemplateNameUnique(payload.name, user.sub);
+    await this.templateRepository.createTemplate(
+      this.mapCreatePayload(payload, user.sub, code),
+    );
+
+    return null;
+  }
+
+  async update(
+    user: TUserPayload,
+    payload: UpdateTemplateDTO,
+    param: CodeParamDTO,
+  ) {
+    const template = await this.getTemplateOrThrow(user, param.code);
+
+    this.validateUpdateStructure(template, payload);
+
+    const diff = payload.details
+      ? this.buildDiff(template.excel_template_detail, payload.details)
+      : null;
+
+    return diff;
+  }
+
+  private async getTemplateOrThrow(user: TUserPayload, code: string) {
+    const isAdmin = user.role === ERole.ADM;
+
+    const template = await this.templateRepository.findByCode(
+      TemplateProjection.baseDetailOwner,
+      code,
+      isAdmin ? undefined : user.sub,
+    );
+
+    if (!template)
+      throw new NotFoundException('Template yang Anda cari tidak ditemukan.');
+
+    return template;
+  }
+
+  private async ensureTemplateNameUnique(name: string, userCode: string) {
+    const exist = await this.templateRepository.findByNameWithUser(
+      TemplateProjection.base,
+      name,
+      userCode,
+    );
+
+    if (exist) {
+      throw new ConflictException(
+        'Nama template sudah digunakan. Silakan gunakan nama lain.',
+      );
+    }
+  }
+
+  private validateTemplateStructure(payload: TemplateDTO) {
+    const { dataOrientation, isMultipleHeader, headersSetting, details } =
+      payload;
+
+    if (!details.length) {
+      throw new BadRequestException(
+        'Template harus memiliki minimal satu header.',
+      );
+    }
+
+    this.validateStructure(
+      dataOrientation,
+      isMultipleHeader,
+      headersSetting,
+      details,
+    );
+  }
+
+  private validateUpdateStructure(
     template: TTemplateWithDetailOwner,
     payload: UpdateTemplateDTO,
   ) {
@@ -295,19 +159,63 @@ export class TemplateService {
         'Kolom penanda dokumen wajib diisi ketika menggunakan multiple header.',
       );
     }
+
+    if (!payload.details) return;
+
+    const orientation =
+      payload.dataOrientation ??
+      DataOrienTationMapper.fromPrisma(template.data_orientation);
+
+    const isMultiple = payload.isMultipleHeader ?? template.is_multiple_header;
+
+    this.validateStructure(
+      orientation,
+      isMultiple,
+      payload.headersSetting,
+      payload.details,
+    );
   }
 
-  private validateDetails(
+  private validateStructure(
+    orientation: EDataOrientation,
+    isMultipleHeader: boolean,
+    headersSetting: IHeaderSetting | undefined,
+    details: ITemplateDetail[],
+  ) {
+    if (isMultipleHeader && !headersSetting) {
+      throw new BadRequestException(
+        'Kolom penanda dokumen wajib diisi ketika menggunakan multiple header.',
+      );
+    }
+
+    const { rowIndexes, columnIndexes } = this.validateDetailPositions(
+      details,
+      headersSetting,
+      isMultipleHeader,
+    );
+
+    this.validateHeaderIndexes(
+      orientation,
+      isMultipleHeader,
+      headersSetting,
+      rowIndexes,
+      columnIndexes,
+    );
+  }
+
+  private validateDetailPositions(
     details: ITemplateDetail[],
     headersSetting?: IHeaderSetting,
     isMultipleHeader?: boolean,
   ) {
     const positionSet = new Set<string>();
-    let groupingColumnFound = false;
+    const rowIndexes = new Set<number>();
+    const columnIndexes = new Set<number>();
+    let groupingFound = false;
 
-    const normalizedGroupingLabel = headersSetting?.groupingColumnLabel
+    const groupingLabel = headersSetting?.groupingColumnLabel
       ?.trim()
-      ?.toLowerCase();
+      .toLowerCase();
 
     for (const detail of details) {
       if (detail.rowIndex < 0 || detail.columnIndex < 0) {
@@ -323,69 +231,118 @@ export class TemplateService {
       }
 
       positionSet.add(key);
+      rowIndexes.add(detail.rowIndex);
+      columnIndexes.add(detail.columnIndex);
 
-      if (normalizedGroupingLabel) {
-        const normalizedLabel = detail.label.trim().toLowerCase();
-
-        if (normalizedLabel === normalizedGroupingLabel) {
-          if (groupingColumnFound) {
+      if (groupingLabel) {
+        const label = detail.label.trim().toLowerCase();
+        if (label === groupingLabel) {
+          if (groupingFound) {
             throw new BadRequestException(
               'Kolom penanda dokumen tidak boleh digunakan lebih dari satu kali.',
             );
           }
-
-          groupingColumnFound = true;
+          groupingFound = true;
         }
       }
     }
 
-    if (isMultipleHeader && !groupingColumnFound) {
+    if (isMultipleHeader && !groupingFound) {
       throw new BadRequestException(
-        'Kolom penanda dokumen yang dipilih tidak ditemukan pada template.',
+        'Kolom penanda dokumen tidak ditemukan pada template.',
       );
+    }
+
+    return { rowIndexes, columnIndexes };
+  }
+
+  private validateHeaderIndexes(
+    orientation: EDataOrientation,
+    isMultipleHeader: boolean,
+    headersSetting: IHeaderSetting | undefined,
+    rowIndexes: Set<number>,
+    columnIndexes: Set<number>,
+  ) {
+    const indexes =
+      orientation === EDataOrientation.VERTICAL
+        ? Array.from(rowIndexes)
+        : Array.from(columnIndexes);
+
+    indexes.sort((a, b) => a - b);
+
+    if (isMultipleHeader) {
+      if (indexes.length < 2) {
+        throw new BadRequestException(
+          'Minimal harus terdapat dua header saat multiple header diaktifkan.',
+        );
+      }
+
+      for (let i = 1; i < indexes.length; i++) {
+        if (indexes[i] !== indexes[i - 1] + 1) {
+          throw new BadRequestException(
+            'Header harus disusun berurutan tanpa jeda.',
+          );
+        }
+      }
+
+      if (
+        indexes.length !== Object.keys(headersSetting?.headers ?? {}).length
+      ) {
+        throw new BadRequestException(
+          'Jumlah header tidak sesuai dengan pengaturan.',
+        );
+      }
+    } else {
+      if (indexes.length !== 1) {
+        throw new BadRequestException(
+          'Template hanya boleh memiliki satu header.',
+        );
+      }
     }
   }
 
-  private validateOrientationChange(
-    template: TTemplateWithDetailOwner,
-    newOrientation: EDataOrientation,
-    details: ITemplateDetail[],
-    isMultipleHeader?: boolean,
-    headersSetting?: IHeaderSetting,
-  ) {
-    const oldOrientation = DataOrienTationMapper.fromPrisma(
-      template.data_orientation,
-    );
+  private generateTemplateCode() {
+    return makeRandomString({
+      length: 50,
+      isLowerCase: false,
+      isUpperCase: true,
+      isNumeric: true,
+    });
+  }
 
-    if (newOrientation === oldOrientation) return;
-
-    const indexSet =
-      newOrientation === EDataOrientation.VERTICAL
-        ? new Set(details.map((d) => d.rowIndex))
-        : new Set(details.map((d) => d.columnIndex));
-
-    const indexes = Array.from(indexSet).sort((a, b) => a - b);
-
-    if (indexes.length < 2) {
-      throw new BadRequestException('Minimal harus terdapat dua header.');
-    }
-
-    for (let i = 1; i < indexes.length; i++) {
-      if (indexes[i] !== indexes[i - 1] + 1) {
-        throw new BadRequestException(
-          'Header harus disusun berurutan tanpa jeda.',
-        );
-      }
-    }
-
-    if (isMultipleHeader && headersSetting) {
-      const headerKeys = Object.keys(headersSetting.headers ?? {});
-      if (indexes.length !== headerKeys.length) {
-        throw new BadRequestException(
-          'Jumlah header tidak sesuai dengan pengaturan header.',
-        );
-      }
-    }
+  private mapCreatePayload(
+    payload: TemplateDTO,
+    userCode: string,
+    code: string,
+  ): Prisma.excel_templatesCreateInput {
+    return {
+      name: payload.name,
+      description: payload.description,
+      data_orientation: payload.dataOrientation,
+      is_multiple_header: payload.isMultipleHeader,
+      code,
+      users: {
+        connect: { unique_code: userCode },
+      },
+      excel_template_detail: {
+        createMany: {
+          data: payload.details.map((d) => ({
+            column_index: d.columnIndex,
+            row_index: d.rowIndex,
+            label: d.label,
+            is_required: d.isRequired,
+            alignment: d.alignment
+              ? {
+                  vertical: d.alignment.vertical,
+                  horizontal: d.alignment.horizontal,
+                }
+              : null,
+            font_color: d.fontColor,
+            background_color: d.backgroundColor,
+          })),
+        },
+      },
+    };
   }
 
   private buildDiff(

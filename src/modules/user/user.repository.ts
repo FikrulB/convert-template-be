@@ -6,7 +6,7 @@ import { Prisma } from 'generated/prisma/client';
 export class UserRepository {
   constructor(private prisma: PrismaService) {}
 
-  async transaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
+  transaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
     return this.prisma.$transaction(cb);
   }
 
@@ -48,13 +48,10 @@ export class UserRepository {
     });
   }
 
-  async createUser(
-    data: Prisma.usersCreateInput,
-    prisma?: Prisma.TransactionClient,
-  ) {
+  createUser(data: Prisma.usersCreateInput, prisma?: Prisma.TransactionClient) {
     const db = prisma ?? this.prisma;
 
-    return await db.users.create({
+    return db.users.create({
       data,
       select: {
         id: true,

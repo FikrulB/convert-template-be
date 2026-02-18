@@ -46,6 +46,8 @@ export default tseslint.config(
       // ========================
       // PROMISE & ASYNC
       // ========================
+      '@typescript-eslint/return-await': ['error', 'in-try-catch'],
+      'require-await': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
 
       // ========================
