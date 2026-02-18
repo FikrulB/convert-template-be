@@ -8,6 +8,7 @@ export interface IAlignment {
   horizontal?: EHorizontalAlignment;
 }
 export interface ITemplateDetail {
+  id?: number;
   columnIndex: number;
   rowIndex: number;
   label: string;
@@ -15,4 +16,13 @@ export interface ITemplateDetail {
   alignment?: IAlignment;
   fontColor?: string;
   backgroundColor?: string;
+}
+
+export interface IHeaders {
+  isMultiple: boolean;
+}
+
+export interface IHeaderSetting {
+  groupingColumnLabel: string;
+  headers: Record<string, IHeaders>;
 }

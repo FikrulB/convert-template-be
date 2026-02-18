@@ -142,7 +142,7 @@ export class TemplateDTO {
 
   @ToBoolean()
   @IsBoolean({ message: 'isMultipleHeader harus berupa boolean (true/false).' })
-  isMultipleHeader: boolean = false;
+  isMultipleHeader?: boolean;
 
   @IsOptional()
   @ValidateNested()
