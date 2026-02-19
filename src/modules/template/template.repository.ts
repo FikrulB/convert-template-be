@@ -25,13 +25,13 @@ export class TemplateRepository {
     code: string,
     userCode?: string,
   ) {
-    return this.prisma.excel_templates.findUnique({
+    return this.prisma.excel_templates.findFirst({
       where: {
         code,
-        ...(userCode ? { users: { unique_code: userCode } } : {}),
+        ...(userCode && { users: { unique_code: userCode } }),
       },
-      select: select,
-    });
+      select,
+    }) as Promise<Prisma.excel_templatesGetPayload<{ select: T }> | null>;
   }
 
   findByNameWithUser<T extends Prisma.excel_templatesSelect>(

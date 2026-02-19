@@ -15,7 +15,7 @@ import {
 import {
   TemplateProjection,
   TTemplateDetail,
-  TTemplateWithDetailOwner,
+  TTemplateSelectFullInfo,
 } from '#/modules/template/template.projection';
 import { TemplateRepository } from '#/modules/template/template.repository';
 import { UserProjection } from '#/modules/user/user.projection';
@@ -73,7 +73,12 @@ export class TemplateService {
   async create(user: TUserPayload, payload: TemplateDTO) {
     this.validateTemplateStructure(payload);
 
-    const code = this.generateTemplateCode();
+    const code = makeRandomString({
+      length: 50,
+      isLowerCase: false,
+      isUpperCase: true,
+      isNumeric: true,
+    });
 
     await this.ensureTemplateNameUnique(payload.name, user.sub);
     await this.templateRepository.createTemplate(
@@ -103,7 +108,7 @@ export class TemplateService {
     const isAdmin = user.role === ERole.ADM;
 
     const template = await this.templateRepository.findByCode(
-      TemplateProjection.baseDetailOwner,
+      TemplateProjection.full,
       code,
       isAdmin ? undefined : user.sub,
     );
@@ -121,44 +126,42 @@ export class TemplateService {
       userCode,
     );
 
-    if (exist) {
+    if (exist)
       throw new ConflictException(
         'Nama template sudah digunakan. Silakan gunakan nama lain.',
       );
-    }
   }
 
   private validateTemplateStructure(payload: TemplateDTO) {
     const { dataOrientation, isMultipleHeader, headersSetting, details } =
       payload;
 
-    if (!details.length) {
+    if (!details || details.length === 0)
       throw new BadRequestException(
         'Template harus memiliki minimal satu header.',
       );
-    }
 
     this.validateStructure(
       dataOrientation,
       isMultipleHeader,
       headersSetting,
       details,
+      null,
     );
   }
 
   private validateUpdateStructure(
-    template: TTemplateWithDetailOwner,
+    template: TTemplateSelectFullInfo,
     payload: UpdateTemplateDTO,
   ) {
     if (
       template.is_multiple_header === false &&
       payload.isMultipleHeader === true &&
       !payload.headersSetting
-    ) {
+    )
       throw new BadRequestException(
         'Kolom penanda dokumen wajib diisi ketika menggunakan multiple header.',
       );
-    }
 
     if (!payload.details) return;
 
@@ -173,6 +176,7 @@ export class TemplateService {
       isMultiple,
       payload.headersSetting,
       payload.details,
+      template,
     );
   }
 
@@ -181,17 +185,22 @@ export class TemplateService {
     isMultipleHeader: boolean,
     headersSetting: IHeaderSetting | undefined,
     details: ITemplateDetail[],
+    template: TTemplateSelectFullInfo | null,
   ) {
-    if (isMultipleHeader && !headersSetting) {
+    if (
+      template?.is_multiple_header === false &&
+      isMultipleHeader === true &&
+      !headersSetting
+    )
       throw new BadRequestException(
         'Kolom penanda dokumen wajib diisi ketika menggunakan multiple header.',
       );
-    }
 
     const { rowIndexes, columnIndexes } = this.validateDetailPositions(
       details,
       headersSetting,
       isMultipleHeader,
+      template,
     );
 
     this.validateHeaderIndexes(
@@ -200,6 +209,7 @@ export class TemplateService {
       headersSetting,
       rowIndexes,
       columnIndexes,
+      template,
     );
   }
 
@@ -207,6 +217,7 @@ export class TemplateService {
     details: ITemplateDetail[],
     headersSetting?: IHeaderSetting,
     isMultipleHeader?: boolean,
+    template?: TTemplateSelectFullInfo | null,
   ) {
     const positionSet = new Set<string>();
     const rowIndexes = new Set<number>();
@@ -218,17 +229,15 @@ export class TemplateService {
       .toLowerCase();
 
     for (const detail of details) {
-      if (detail.rowIndex < 0 || detail.columnIndex < 0) {
+      if (detail.rowIndex < 0 || detail.columnIndex < 0)
         throw new BadRequestException('Posisi baris dan kolom tidak valid.');
-      }
 
       const key = `${detail.rowIndex}-${detail.columnIndex}`;
 
-      if (positionSet.has(key)) {
+      if (positionSet.has(key))
         throw new BadRequestException(
           `Terdapat posisi sel yang sama pada baris ${detail.rowIndex} dan kolom ${detail.columnIndex}.`,
         );
-      }
 
       positionSet.add(key);
       rowIndexes.add(detail.rowIndex);
@@ -237,21 +246,23 @@ export class TemplateService {
       if (groupingLabel) {
         const label = detail.label.trim().toLowerCase();
         if (label === groupingLabel) {
-          if (groupingFound) {
+          if (groupingFound)
             throw new BadRequestException(
               'Kolom penanda dokumen tidak boleh digunakan lebih dari satu kali.',
             );
-          }
           groupingFound = true;
         }
       }
     }
 
-    if (isMultipleHeader && !groupingFound) {
+    if (
+      template?.is_multiple_header === false &&
+      isMultipleHeader === true &&
+      !groupingFound
+    )
       throw new BadRequestException(
         'Kolom penanda dokumen tidak ditemukan pada template.',
       );
-    }
 
     return { rowIndexes, columnIndexes };
   }
@@ -262,6 +273,7 @@ export class TemplateService {
     headersSetting: IHeaderSetting | undefined,
     rowIndexes: Set<number>,
     columnIndexes: Set<number>,
+    template: TTemplateSelectFullInfo | null,
   ) {
     const indexes =
       orientation === EDataOrientation.VERTICAL
@@ -271,43 +283,39 @@ export class TemplateService {
     indexes.sort((a, b) => a - b);
 
     if (isMultipleHeader) {
-      if (indexes.length < 2) {
+      if (indexes.length < 2)
         throw new BadRequestException(
           'Minimal harus terdapat dua header saat multiple header diaktifkan.',
         );
-      }
 
       for (let i = 1; i < indexes.length; i++) {
-        if (indexes[i] !== indexes[i - 1] + 1) {
+        if (indexes[i] !== indexes[i - 1] + 1)
           throw new BadRequestException(
             'Header harus disusun berurutan tanpa jeda.',
           );
-        }
       }
 
-      if (
-        indexes.length !== Object.keys(headersSetting?.headers ?? {}).length
-      ) {
+      let headersCount: number;
+
+      if (headersSetting) {
+        headersCount = Object.keys(headersSetting.headers ?? {}).length;
+      } else {
+        const head =
+          template?.excel_template_header_settings?.excel_template_header ?? [];
+
+        headersCount = head.length;
+      }
+
+      if (indexes.length !== headersCount)
         throw new BadRequestException(
           'Jumlah header tidak sesuai dengan pengaturan.',
         );
-      }
     } else {
-      if (indexes.length !== 1) {
+      if (indexes.length !== 1)
         throw new BadRequestException(
           'Template hanya boleh memiliki satu header.',
         );
-      }
     }
-  }
-
-  private generateTemplateCode() {
-    return makeRandomString({
-      length: 50,
-      isLowerCase: false,
-      isUpperCase: true,
-      isNumeric: true,
-    });
   }
 
   private mapCreatePayload(
@@ -323,6 +331,21 @@ export class TemplateService {
       code,
       users: {
         connect: { unique_code: userCode },
+      },
+      excel_template_header_settings: {
+        create: {
+          grouping_column_label: payload.headersSetting.groupingColumnLabel,
+          excel_template_header: {
+            createMany: {
+              data: Object.entries(payload.headersSetting.headers).map(
+                ([key, val]) => ({
+                  header_index: key,
+                  is_multiple: val.isMultiple,
+                }),
+              ),
+            },
+          },
+        },
       },
       excel_template_detail: {
         createMany: {

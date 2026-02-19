@@ -62,24 +62,45 @@ model excel_template_order {
   @@schema("trx")
 }
 
-model excel_templates {
+model excel_template_header_settings {
   id                    BigInt                  @id @default(autoincrement())
-  code                  String                  @unique(map: "excel_templates_unique") @db.VarChar(50)
-  name                  String                  @db.VarChar(100)
-  description           String?                 @db.Text
-  data_orientation      data_orientation
-  is_multiple_header    Boolean                 @default(false)
-  user_id               BigInt
-  created_at            DateTime                @default(now()) @db.Timestamp(6)
-  created_by            BigInt?
-  updated_at            DateTime?               @db.Timestamp(6)
-  updated_by            BigInt?
-  deleted_at            DateTime?               @db.Timestamp(6)
-  deleted_by            BigInt?
-  excel_mappings        excel_mappings[]
-  excel_template_detail excel_template_detail[]
-  excel_template_order  excel_template_order[]
-  users                 users                   @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_excel_templates_user")
+  template_id           BigInt                  @unique
+  grouping_column_label String
+  excel_template_header excel_template_header[]
+  excel_templates       excel_templates         @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_template_header_settings_template")
+
+  @@schema("trx")
+}
+
+model excel_template_header {
+  id                             BigInt                         @id @default(autoincrement())
+  header_setting_id              BigInt
+  header_index                   String
+  is_multiple                    Boolean
+  excel_template_header_settings excel_template_header_settings @relation(fields: [header_setting_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_excel_template_header_template_header_settings")
+
+  @@schema("trx")
+}
+
+model excel_templates {
+  id                             BigInt                          @id @default(autoincrement())
+  code                           String                          @unique(map: "excel_templates_unique") @db.VarChar(50)
+  name                           String                          @db.VarChar(100)
+  description                    String?                         @db.Text
+  data_orientation               data_orientation
+  is_multiple_header             Boolean                         @default(false)
+  user_id                        BigInt
+  created_at                     DateTime                        @default(now()) @db.Timestamp(6)
+  created_by                     BigInt?
+  updated_at                     DateTime?                       @db.Timestamp(6)
+  updated_by                     BigInt?
+  deleted_at                     DateTime?                       @db.Timestamp(6)
+  deleted_by                     BigInt?
+  excel_mappings                 excel_mappings[]
+  excel_template_detail          excel_template_detail[]
+  excel_template_order           excel_template_order[]
+  excel_template_header_settings excel_template_header_settings?
+  users                          users                           @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_excel_templates_user")
 
   @@schema("trx")
 }

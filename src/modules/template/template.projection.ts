@@ -1,5 +1,9 @@
 import { Prisma } from 'generated/prisma/client';
 
+/* =========================
+   SELECT FRAGMENTS
+========================= */
+
 export const TemplateSelectBase = {
   code: true,
   name: true,
@@ -23,6 +27,21 @@ export const TemplateSelectDetails = {
   },
 } satisfies Prisma.excel_templatesSelect;
 
+export const TemplateSelectHeaderSettings = {
+  excel_template_header_settings: {
+    select: {
+      id: true,
+      grouping_column_label: true,
+      excel_template_header: {
+        select: {
+          header_index: true,
+          is_multiple: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.excel_templatesSelect;
+
 export const TemplateSelectOwner = {
   users: {
     select: {
@@ -36,6 +55,45 @@ export const TemplateSelectOwner = {
   },
 } satisfies Prisma.excel_templatesSelect;
 
+/* =========================
+   PROJECTION COMBINATIONS
+========================= */
+
+export const TemplateProjection = {
+  base: {
+    ...TemplateSelectBase,
+  },
+
+  details: {
+    ...TemplateSelectDetails,
+  },
+
+  headers: {
+    ...TemplateSelectHeaderSettings,
+  },
+
+  owner: {
+    ...TemplateSelectOwner,
+  },
+
+  baseDetailOwner: {
+    ...TemplateSelectBase,
+    ...TemplateSelectDetails,
+    ...TemplateSelectOwner,
+  },
+
+  full: {
+    ...TemplateSelectBase,
+    ...TemplateSelectDetails,
+    ...TemplateSelectHeaderSettings,
+    ...TemplateSelectOwner,
+  },
+} as const;
+
+/* =========================
+   PAYLOAD TYPES
+========================= */
+
 export type TTemplateSelectBase = Prisma.excel_templatesGetPayload<{
   select: typeof TemplateProjection.base;
 }>;
@@ -48,30 +106,23 @@ export type TTemplateSelectOwner = Prisma.excel_templatesGetPayload<{
   select: typeof TemplateProjection.owner;
 }>;
 
+export type TTemplateSelectFullInfo = Prisma.excel_templatesGetPayload<{
+  select: typeof TemplateProjection.full;
+}>;
+
 export type TTemplateWithDetails = Prisma.excel_templatesGetPayload<{
-  select: typeof TemplateSelectDetails;
+  select: typeof TemplateProjection.details;
+}>;
+
+export type TTemplateHeaders = Prisma.excel_templatesGetPayload<{
+  select: typeof TemplateProjection.headers;
 }>;
 
 export type TTemplateDetail =
   TTemplateWithDetails['excel_template_detail'][number];
 
-export const TemplateProjection = {
-  base: {
-    ...TemplateSelectBase,
-  } satisfies Prisma.excel_templatesSelect,
-  details: {
-    ...TemplateSelectDetails,
-  } satisfies Prisma.excel_templatesSelect,
-  owner: {
-    ...TemplateSelectOwner,
-  } satisfies Prisma.excel_templatesSelect,
-  baseDetailOwner: {
-    ...TemplateSelectBase,
-    ...TemplateSelectDetails,
-    ...TemplateSelectOwner,
-  } satisfies Prisma.excel_templatesSelect,
-  full: {
-    ...TemplateSelectBase,
-    ...TemplateSelectDetails,
-  } satisfies Prisma.excel_templatesSelect,
-};
+export type TTemplateHeaderSetting =
+  TTemplateHeaders['excel_template_header_settings'];
+
+export type TTemplateHeader =
+  NonNullable<TTemplateHeaderSetting>['excel_template_header'][number];
