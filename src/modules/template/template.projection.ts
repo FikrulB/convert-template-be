@@ -45,6 +45,7 @@ export const TemplateSelectHeaderSettings = {
 export const TemplateSelectOwner = {
   users: {
     select: {
+      id: true,
       unique_code: true,
       user_detail: {
         select: {

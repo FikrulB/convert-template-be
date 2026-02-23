@@ -93,6 +93,7 @@ export class TemplateService {
     payload: UpdateTemplateDTO,
     param: CodeParamDTO,
   ) {
+    const isAdmin = user.role === ERole.ADM;
     const template = await this.getTemplateOrThrow(user, param.code);
 
     this.validateUpdateStructure(template, payload);
@@ -101,7 +102,34 @@ export class TemplateService {
       ? this.buildDiff(template.excel_template_detail, payload.details)
       : null;
 
-    return diff;
+    return this.templateRepository.updateByCode(
+      param.code,
+      template.users.id,
+      isAdmin,
+      {
+        name: payload.name,
+        description: payload.description,
+        data_orientation: payload.dataOrientation,
+        is_multiple_header: payload.isMultipleHeader,
+        excel_template_detail: {
+          updateMany: diff.toUpdate.map((item) => ({
+            where: { column_index: item.columnIndex, row_index: item.rowIndex },
+            data: {
+              label: item.label,
+              is_required: item.isRequired,
+              alignment: item.alignment
+                ? {
+                    vertical: item.alignment.vertical,
+                    horizontal: item.alignment.horizontal,
+                  }
+                : null,
+              font_color: item.fontColor,
+              background_color: item.backgroundColor,
+            },
+          })),
+        },
+      },
+    );
   }
 
   private async getTemplateOrThrow(user: TUserPayload, code: string) {

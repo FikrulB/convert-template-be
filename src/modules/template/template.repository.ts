@@ -28,7 +28,7 @@ export class TemplateRepository {
     return this.prisma.excel_templates.findFirst({
       where: {
         code,
-        ...(userCode && { users: { unique_code: userCode } }),
+        ...(!userCode ? {} : { users: { unique_code: userCode } }),
       },
       select,
     }) as Promise<Prisma.excel_templatesGetPayload<{ select: T }> | null>;
@@ -64,7 +64,7 @@ export class TemplateRepository {
       where: {
         code,
         deleted_at: null,
-        ...(!isAdmin ? {} : { user_id: userId }),
+        ...(isAdmin ? {} : { user_id: userId }),
       },
       data: {
         deleted_at: new Date(),
@@ -87,7 +87,7 @@ export class TemplateRepository {
       where: {
         code,
         deleted_at: null,
-        ...(!isAdmin ? {} : { user_id: userId }),
+        ...(isAdmin ? {} : { user_id: userId }),
       },
       data: {
         ...data,
